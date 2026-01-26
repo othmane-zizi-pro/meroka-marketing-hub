@@ -6,19 +6,19 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
   Linkedin,
-  Twitter,
   Instagram,
   Megaphone,
   Settings,
   LogOut,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
+import { XIcon } from '@/components/ui/icons';
 import { currentUser } from '@/lib/mock-data';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'LinkedIn', href: '/channels/linkedin', icon: Linkedin },
-  { name: 'X (Twitter)', href: '/channels/twitter', icon: Twitter },
+  { name: 'X', href: '/channels/twitter', icon: XIcon },
   { name: 'Instagram', href: '/channels/instagram', icon: Instagram },
   { name: 'Campaigns', href: '/campaigns', icon: Megaphone },
   { name: 'Settings', href: '/settings', icon: Settings },

@@ -5,17 +5,18 @@ import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { currentUser, channelStats } from '@/lib/mock-data';
-import { Linkedin, Twitter, Instagram, ArrowRight, TrendingUp, CheckCircle, Clock } from 'lucide-react';
+import { Linkedin, Instagram, ArrowRight, TrendingUp, CheckCircle, Clock } from 'lucide-react';
+import { XIcon } from '@/components/ui/icons';
 
 const channelIcons = {
   linkedin: Linkedin,
-  twitter: Twitter,
+  twitter: XIcon,
   instagram: Instagram,
 };
 
 const channelNames = {
   linkedin: 'LinkedIn',
-  twitter: 'X (Twitter)',
+  twitter: 'X',
   instagram: 'Instagram',
 };
 

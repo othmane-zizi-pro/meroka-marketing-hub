@@ -16,9 +16,9 @@ import {
   Edit,
   Send,
   Linkedin,
-  Twitter,
   Instagram
 } from 'lucide-react';
+import { XIcon } from '@/components/ui/icons';
 
 interface PostCardProps {
   post: Post;
@@ -29,7 +29,7 @@ interface PostCardProps {
 
 const channelIcons = {
   linkedin: Linkedin,
-  twitter: Twitter,
+  twitter: XIcon,
   instagram: Instagram,
 };
 

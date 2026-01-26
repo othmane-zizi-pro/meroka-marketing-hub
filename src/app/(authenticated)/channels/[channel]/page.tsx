@@ -8,7 +8,7 @@ import { Channel } from '@/types';
 
 const channelNames: Record<Channel, string> = {
   linkedin: 'LinkedIn',
-  twitter: 'X (Twitter)',
+  twitter: 'X',
   instagram: 'Instagram',
 };
 
