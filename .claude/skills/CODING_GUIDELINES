@@ -1,0 +1,9 @@
+Coding guidelines
+
+- Always commit and push when you've come up with new stuff
+- Always ask questions first
+- Always make a PRD in phases first that you will be able to refer to implement phase by phase
+- Always feel free to use the connection string to make DB changes/migrations, etc. to the DB
+- If you want to use AWS let me know first
+- Use the colors.md skill for the UI styling
+- Use Agent Browser to get feedback on the UI
