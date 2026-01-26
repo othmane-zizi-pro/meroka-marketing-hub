@@ -11,7 +11,6 @@ import {
   Megaphone,
   Settings,
   LogOut,
-  Users
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { currentUser } from '@/lib/mock-data';
@@ -29,13 +28,13 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-card">
+    <div className="flex h-screen w-64 flex-col bg-brand-navy-800">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
+      <div className="flex h-16 items-center gap-2 border-b border-brand-navy-600/30 px-6">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-brown font-bold text-white">
           M
         </div>
-        <span className="text-lg font-semibold">Meroka Hub</span>
+        <span className="text-lg font-semibold text-brand-neutral-50">Meroka Hub</span>
       </div>
 
       {/* Navigation */}
@@ -51,8 +50,8 @@ export function Sidebar() {
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  ? 'bg-brand-brown text-white'
+                  : 'text-brand-navy-300 hover:bg-brand-navy-600/50 hover:text-brand-neutral-50'
               )}
             >
               <item.icon className="h-5 w-5" />
@@ -63,7 +62,7 @@ export function Sidebar() {
       </nav>
 
       {/* User section */}
-      <div className="border-t p-4">
+      <div className="border-t border-brand-navy-600/30 p-4">
         <div className="flex items-center gap-3">
           <Avatar
             src={currentUser.avatar}
@@ -71,13 +70,13 @@ export function Sidebar() {
             size="md"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{currentUser.name}</p>
-            <p className="text-xs text-muted-foreground truncate">{currentUser.role}</p>
+            <p className="text-sm font-medium text-brand-neutral-50 truncate">{currentUser.name}</p>
+            <p className="text-xs text-brand-navy-300 truncate">{currentUser.role}</p>
           </div>
         </div>
         <Link
           href="/login"
-          className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-navy-300 hover:bg-brand-navy-600/50 hover:text-brand-neutral-50 transition-colors"
         >
           <LogOut className="h-4 w-4" />
           Sign out

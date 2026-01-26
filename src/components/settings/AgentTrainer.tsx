@@ -45,26 +45,26 @@ export function AgentTrainer() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="border-brand-neutral-100">
         <CardHeader>
-          <CardTitle>Example Posts (Few-Shot Learning)</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-brand-navy-900">Example Posts (Few-Shot Learning)</CardTitle>
+          <CardDescription className="text-brand-navy-600">
             Add examples of posts you like. The AI will learn your style and tone from these.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {examplePosts.map((post, index) => (
-            <div key={index} className="relative rounded-lg border bg-muted/50 p-4">
+            <div key={index} className="relative rounded-lg border border-brand-neutral-100 bg-brand-neutral-50 p-4">
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-2 h-6 w-6"
+                className="absolute right-2 top-2 h-6 w-6 text-brand-navy-300 hover:text-brand-navy-900"
                 onClick={() => removeExamplePost(index)}
               >
                 <X className="h-4 w-4" />
               </Button>
-              <p className="text-sm pr-8">{post}</p>
-              <Badge variant="secondary" className="mt-2">
+              <p className="text-sm pr-8 text-brand-navy-800">{post}</p>
+              <Badge variant="secondary" className="mt-2 bg-brand-neutral-100 text-brand-navy-600">
                 Example {index + 1}
               </Badge>
             </div>
@@ -76,13 +76,14 @@ export function AgentTrainer() {
               value={newPost}
               onChange={(e) => setNewPost(e.target.value)}
               rows={3}
+              className="border-brand-neutral-100 focus:border-brand-brown"
             />
             <Button
               variant="outline"
               size="sm"
               onClick={addExamplePost}
               disabled={!newPost.trim()}
-              className="gap-1"
+              className="gap-1 border-brand-navy-300 text-brand-navy-800 hover:bg-brand-neutral-100"
             >
               <Plus className="h-4 w-4" />
               Add Example
@@ -91,10 +92,10 @@ export function AgentTrainer() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-brand-neutral-100">
         <CardHeader>
-          <CardTitle>Personal Context</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-brand-navy-900">Personal Context</CardTitle>
+          <CardDescription className="text-brand-navy-600">
             Tell the AI about yourself, your role, and your preferred writing style.
           </CardDescription>
         </CardHeader>
@@ -104,14 +105,15 @@ export function AgentTrainer() {
             onChange={(e) => setPersonalContext(e.target.value)}
             rows={4}
             placeholder="Describe your role, experience, interests, and preferred tone..."
+            className="border-brand-neutral-100 focus:border-brand-brown"
           />
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-brand-neutral-100">
         <CardHeader>
-          <CardTitle>Test Output</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-brand-navy-900">Test Output</CardTitle>
+          <CardDescription className="text-brand-navy-600">
             Generate a sample post to see how the AI has learned your style.
           </CardDescription>
         </CardHeader>
@@ -119,7 +121,7 @@ export function AgentTrainer() {
           <Button
             onClick={handleTestOutput}
             disabled={isGenerating}
-            className="gap-2"
+            className="gap-2 bg-brand-brown hover:bg-brand-brown-dark text-white"
           >
             {isGenerating ? (
               <>
@@ -135,12 +137,12 @@ export function AgentTrainer() {
           </Button>
 
           {testOutput && (
-            <div className="rounded-lg border bg-gradient-to-br from-primary/5 to-primary/10 p-4">
+            <div className="rounded-lg border border-brand-brown/20 bg-gradient-to-br from-brand-brown/5 to-brand-brown/10 p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">AI Generated</span>
+                <Sparkles className="h-4 w-4 text-brand-brown" />
+                <span className="text-sm font-medium text-brand-navy-900">AI Generated</span>
               </div>
-              <p className="text-sm">{testOutput}</p>
+              <p className="text-sm text-brand-navy-800">{testOutput}</p>
             </div>
           )}
         </CardContent>

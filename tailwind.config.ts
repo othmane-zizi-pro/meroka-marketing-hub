@@ -39,6 +39,24 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Brand colors
+        brand: {
+          brown: {
+            dark: '#69311E',
+            DEFAULT: '#9A4616',
+          },
+          navy: {
+            900: '#0E1219',
+            800: '#1C222D',
+            600: '#3C5676',
+            300: '#A9BCD0',
+          },
+          neutral: {
+            50: '#F8F6F3',
+            100: '#E8E2DC',
+          },
+          ice: '#D4E4F4',
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
