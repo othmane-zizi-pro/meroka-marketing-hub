@@ -79,6 +79,39 @@ export async function GET(request: NextRequest) {
       linkedinName = `${profileData.localizedFirstName || ''} ${profileData.localizedLastName || ''}`.trim() || null;
     }
 
+    // Fetch organizations the user can post as (requires Advertising API)
+    let organizationId = null;
+    let organizationName = null;
+
+    try {
+      // Get organization access control list - find orgs user can post to
+      const orgsResponse = await fetch(
+        'https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR&projection=(elements*(organizationalTarget~(localizedName)))',
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'X-Restli-Protocol-Version': '2.0.0',
+          },
+        }
+      );
+
+      if (orgsResponse.ok) {
+        const orgsData = await orgsResponse.json();
+        if (orgsData.elements && orgsData.elements.length > 0) {
+          // Get the first organization the user administers
+          const firstOrg = orgsData.elements[0];
+          // Extract organization ID from URN (e.g., "urn:li:organization:12345")
+          const orgUrn = firstOrg.organizationalTarget;
+          organizationId = orgUrn?.split(':').pop() || null;
+          organizationName = firstOrg['organizationalTarget~']?.localizedName || null;
+        }
+      } else {
+        console.log('Could not fetch organizations:', await orgsResponse.text());
+      }
+    } catch (orgError) {
+      console.error('Error fetching organizations:', orgError);
+    }
+
     // Store the token in Supabase
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -100,6 +133,8 @@ export async function GET(request: NextRequest) {
         expires_at: expiresAt,
         linkedin_user_id: linkedinUserId,
         linkedin_name: linkedinName,
+        organization_id: organizationId,
+        organization_name: organizationName,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_email'

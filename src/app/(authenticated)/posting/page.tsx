@@ -24,7 +24,7 @@ interface ChannelConfig {
 
 const baseChannels: ChannelConfig[] = [
   { id: 'x', name: 'X', icon: XIcon, maxLength: 25000, available: true, color: 'bg-black' },
-  { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, maxLength: 3000, available: false, color: 'bg-blue-600' },
+  { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, maxLength: 3000, available: true, color: 'bg-blue-600' },
   { id: 'instagram', name: 'Instagram', icon: Instagram, maxLength: 2200, available: false, color: 'bg-gradient-to-br from-purple-600 to-pink-500' },
 ];
 
@@ -69,6 +69,8 @@ export default function PostingPage() {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [linkedinConnected, setLinkedinConnected] = useState(false);
   const [linkedinName, setLinkedinName] = useState<string | null>(null);
+  const [linkedinOrgName, setLinkedinOrgName] = useState<string | null>(null);
+  const [linkedinNeedsReconnect, setLinkedinNeedsReconnect] = useState(false);
   const [postMetrics, setPostMetrics] = useState<Record<string, {
     likes: number;
     retweets: number;
@@ -122,6 +124,8 @@ export default function PostingPage() {
       const data = await response.json();
       setLinkedinConnected(data.connected);
       setLinkedinName(data.linkedinName || null);
+      setLinkedinOrgName(data.organizationName || null);
+      setLinkedinNeedsReconnect(data.needsReconnect || false);
     } catch (error) {
       console.error('Error fetching LinkedIn status:', error);
     }
@@ -343,10 +347,13 @@ export default function PostingPage() {
                       )}
                       {channel.id === 'linkedin' && linkedinConnected && (
                         <span className="text-xs text-green-600 flex items-center gap-1">
-                          <Check className="h-3 w-3" /> Connected
+                          <Check className="h-3 w-3" /> {linkedinOrgName || 'Connected'}
                         </span>
                       )}
-                      {isLinkedinNotConnected && (
+                      {channel.id === 'linkedin' && linkedinNeedsReconnect && (
+                        <span className="text-xs text-orange-500">Reconnect required</span>
+                      )}
+                      {isLinkedinNotConnected && !linkedinNeedsReconnect && (
                         <span className="text-xs text-brand-navy-400">Not connected</span>
                       )}
                     </button>
@@ -357,7 +364,7 @@ export default function PostingPage() {
           </Card>
 
           {/* LinkedIn Connect Prompt */}
-          {selectedChannel === 'linkedin' && !linkedinConnected && (
+          {selectedChannel === 'linkedin' && (!linkedinConnected || linkedinNeedsReconnect) && (
             <Card className="border-blue-200 bg-blue-50">
               <CardContent className="py-6">
                 <div className="flex flex-col items-center gap-4 text-center">
@@ -365,9 +372,13 @@ export default function PostingPage() {
                     <Linkedin className="h-8 w-8" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-brand-navy-900">Connect LinkedIn</h3>
+                    <h3 className="font-semibold text-brand-navy-900">
+                      {linkedinNeedsReconnect ? 'Reconnect LinkedIn' : 'Connect LinkedIn'}
+                    </h3>
                     <p className="text-sm text-brand-navy-600 mt-1">
-                      Connect your LinkedIn account to post directly from MCUBE
+                      {linkedinNeedsReconnect
+                        ? 'Your LinkedIn connection needs to be updated to post as your company page'
+                        : 'Connect your LinkedIn account to post as your company page'}
                     </p>
                   </div>
                   <Button
@@ -375,7 +386,7 @@ export default function PostingPage() {
                     className="gap-2 bg-blue-600 hover:bg-blue-700"
                   >
                     <Link2 className="h-4 w-4" />
-                    Connect LinkedIn Account
+                    {linkedinNeedsReconnect ? 'Reconnect LinkedIn' : 'Connect LinkedIn Account'}
                   </Button>
                 </div>
               </CardContent>

@@ -1,6 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+// Send notification to Slack
+async function sendSlackNotification(
+  authorName: string,
+  organizationName: string,
+  content: string,
+  postUrl: string | null
+) {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  try {
+    const truncatedContent = content.length > 200
+      ? content.substring(0, 200) + '...'
+      : content;
+
+    const message = {
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*New LinkedIn Post* :briefcase:\n*Company:* ${organizationName}\n*Posted by:* ${authorName}`,
+          },
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `>${truncatedContent.replace(/\n/g, '\n>')}`,
+          },
+        },
+        ...(postUrl ? [{
+          type: 'actions',
+          elements: [
+            {
+              type: 'button',
+              text: {
+                type: 'plain_text',
+                text: 'View Post',
+                emoji: true,
+              },
+              url: postUrl,
+              style: 'primary',
+            },
+          ],
+        }] : []),
+      ],
+    };
+
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message),
+    });
+  } catch (error) {
+    console.error('Failed to send Slack notification:', error);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
@@ -53,18 +112,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the LinkedIn user's URN (person identifier)
-    const linkedinUserId = connection.linkedin_user_id;
-    if (!linkedinUserId) {
+    // Get the organization ID for company page posting
+    const organizationId = connection.organization_id;
+    if (!organizationId) {
       return NextResponse.json(
-        { error: 'LinkedIn user ID not found. Please reconnect your account.' },
+        { error: 'No LinkedIn organization found. Please reconnect with admin access to your company page.' },
         { status: 400 }
       );
     }
 
-    // Create the post using LinkedIn's Posts API
+    // Create the post using LinkedIn's Posts API (organization posting)
     const postBody = {
-      author: `urn:li:person:${linkedinUserId}`,
+      author: `urn:li:organization:${organizationId}`,
       lifecycleState: 'PUBLISHED',
       specificContent: {
         'com.linkedin.ugc.ShareContent': {
@@ -124,6 +183,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     // Save post to database
+    const authorName = userData?.name || connection.linkedin_name || authUser.email?.split('@')[0] || 'Unknown';
     await supabase.from('social_posts').insert({
       channel: 'linkedin',
       content: content,
@@ -131,8 +191,16 @@ export async function POST(request: NextRequest) {
       external_url: postUrl,
       author_id: userData?.id || null,
       author_email: authUser.email || '',
-      author_name: userData?.name || connection.linkedin_name || authUser.email?.split('@')[0] || 'Unknown',
+      author_name: authorName,
     });
+
+    // Send Slack notification
+    sendSlackNotification(
+      authorName,
+      connection.organization_name || 'Company',
+      content,
+      postUrl
+    );
 
     return NextResponse.json({
       success: true,
@@ -162,7 +230,7 @@ export async function GET(request: NextRequest) {
 
     const { data: connection } = await supabase
       .from('linkedin_connections')
-      .select('linkedin_name, expires_at')
+      .select('linkedin_name, organization_id, organization_name, expires_at')
       .eq('user_email', user.email)
       .single();
 
@@ -171,11 +239,16 @@ export async function GET(request: NextRequest) {
     }
 
     const isExpired = new Date(connection.expires_at) < new Date();
+    const hasOrganization = !!connection.organization_id;
 
     return NextResponse.json({
-      connected: !isExpired,
+      connected: !isExpired && hasOrganization,
       linkedinName: connection.linkedin_name,
+      organizationName: connection.organization_name,
+      organizationId: connection.organization_id,
       expiresAt: connection.expires_at,
+      // If connected but no org, they need to reconnect with proper permissions
+      needsReconnect: !isExpired && !hasOrganization,
     });
   } catch (error) {
     return NextResponse.json({ connected: false });
