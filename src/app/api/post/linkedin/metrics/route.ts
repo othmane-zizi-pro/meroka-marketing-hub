@@ -53,13 +53,6 @@ export async function GET(request: NextRequest) {
     const encodedShares = encodeURIComponent(`List(${sharesList})`);
     const statsUrl = `${baseUrl}?q=organizationalEntity&organizationalEntity=${encodedOrg}&shares=${encodedShares}`;
 
-    console.log('LinkedIn metrics request:', {
-      url: statsUrl,
-      orgUrn,
-      sharesList,
-      ids,
-    });
-
     const statsResponse = await fetch(statsUrl, {
       method: 'GET',
       headers: {
@@ -69,17 +62,15 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const responseText = await statsResponse.text();
-    console.log('LinkedIn metrics response:', statsResponse.status, responseText);
-
     if (!statsResponse.ok) {
+      const errorText = await statsResponse.text();
       return NextResponse.json(
-        { error: `LinkedIn API error (${statsResponse.status}): ${responseText.substring(0, 200)}` },
+        { error: `LinkedIn API error (${statsResponse.status}): ${errorText.substring(0, 200)}` },
         { status: 500 }
       );
     }
 
-    const statsData = JSON.parse(responseText);
+    const statsData = await statsResponse.json();
 
     // Build metrics map
     const metrics: Record<string, {
@@ -110,13 +101,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      metrics,
-      debug: {
-        requestedIds: ids,
-        apiResponse: statsData,
-      }
-    });
+    return NextResponse.json({ metrics });
   } catch (error: any) {
     console.error('Error fetching LinkedIn metrics:', error);
     return NextResponse.json(
