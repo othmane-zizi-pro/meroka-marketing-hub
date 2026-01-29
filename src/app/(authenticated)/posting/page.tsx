@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 
@@ -28,13 +28,62 @@ const channels: ChannelConfig[] = [
 export default function PostingPage() {
   const [selectedChannel, setSelectedChannel] = useState<Channel>('x');
   const [content, setContent] = useState('');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; tweetId?: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentChannel = channels.find(c => c.id === selectedChannel)!;
   const characterCount = content.length;
   const isOverLimit = characterCount > currentChannel.maxLength;
   const canPost = content.trim().length > 0 && !isOverLimit && currentChannel.available;
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4'];
+    if (!validTypes.includes(file.type)) {
+      setResult({
+        success: false,
+        message: 'Invalid file type. Use JPG, PNG, GIF, WebP, or MP4.',
+      });
+      return;
+    }
+
+    // Validate file size
+    const maxSize = file.type.startsWith('video/') ? 512 * 1024 * 1024
+      : file.type.includes('gif') ? 15 * 1024 * 1024
+      : 5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      setResult({
+        success: false,
+        message: `File too large. Max size: ${maxSize / 1024 / 1024}MB`,
+      });
+      return;
+    }
+
+    setMediaFile(file);
+    setResult(null);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setMediaPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeMedia = () => {
+    setMediaFile(null);
+    setMediaPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handlePost = async () => {
     if (!canPost || isPosting) return;
@@ -43,10 +92,15 @@ export default function PostingPage() {
     setResult(null);
 
     try {
+      const formData = new FormData();
+      formData.append('content', content.trim());
+      if (mediaFile) {
+        formData.append('media', mediaFile);
+      }
+
       const response = await fetch('/api/post/x', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: content.trim() }),
+        body: formData,
       });
 
       const data = await response.json();
@@ -58,6 +112,7 @@ export default function PostingPage() {
           tweetId: data.tweet?.id,
         });
         setContent('');
+        removeMedia();
       } else {
         setResult({
           success: false,
@@ -141,7 +196,7 @@ export default function PostingPage() {
                   onChange={(e) => setContent(e.target.value)}
                   placeholder={`What's happening?`}
                   className={cn(
-                    "w-full min-h-[200px] p-4 text-base border rounded-xl resize-none focus:outline-none focus:ring-2",
+                    "w-full min-h-[150px] p-4 text-base border rounded-xl resize-none focus:outline-none focus:ring-2",
                     isOverLimit
                       ? "border-red-300 focus:ring-red-500/50"
                       : "border-brand-neutral-200 focus:ring-brand-brown/50"
@@ -153,6 +208,59 @@ export default function PostingPage() {
                 )}>
                   {characterCount}/{currentChannel.maxLength}
                 </div>
+              </div>
+
+              {/* Media Preview */}
+              {mediaPreview && (
+                <div className="relative inline-block">
+                  {mediaFile?.type.startsWith('video/') ? (
+                    <video
+                      src={mediaPreview}
+                      className="max-h-64 rounded-lg border border-brand-neutral-200"
+                      controls
+                    />
+                  ) : (
+                    <img
+                      src={mediaPreview}
+                      alt="Preview"
+                      className="max-h-64 rounded-lg border border-brand-neutral-200"
+                    />
+                  )}
+                  <button
+                    onClick={removeMedia}
+                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* Media Upload Button */}
+              <div className="flex items-center gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-navy-600 bg-brand-neutral-100 rounded-lg hover:bg-brand-neutral-200 transition-colors"
+                >
+                  <Image className="h-4 w-4" />
+                  Add Image
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-navy-600 bg-brand-neutral-100 rounded-lg hover:bg-brand-neutral-200 transition-colors"
+                >
+                  <Film className="h-4 w-4" />
+                  Add Video
+                </button>
+                <span className="text-xs text-brand-navy-400">
+                  Images: 5MB max | GIFs: 15MB | Videos: 512MB
+                </span>
               </div>
 
               {/* Result message */}

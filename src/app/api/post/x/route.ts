@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TwitterApi } from 'twitter-api-v2';
+import { TwitterApi, EUploadMimeType } from 'twitter-api-v2';
 
 export async function POST(request: NextRequest) {
   try {
-    const { content } = await request.json();
+    const formData = await request.formData();
+    const content = formData.get('content') as string;
+    const mediaFile = formData.get('media') as File | null;
 
     if (!content || typeof content !== 'string') {
       return NextResponse.json(
@@ -41,8 +43,51 @@ export async function POST(request: NextRequest) {
       accessSecret: accessTokenSecret,
     });
 
-    // Post the tweet
-    const tweet = await client.v2.tweet(content);
+    let mediaId: string | undefined;
+
+    // Upload media if provided
+    if (mediaFile) {
+      const buffer = Buffer.from(await mediaFile.arrayBuffer());
+      const mimeType = mediaFile.type;
+
+      // Determine media type for Twitter
+      let twitterMimeType: EUploadMimeType;
+      if (mimeType.startsWith('image/gif')) {
+        twitterMimeType = EUploadMimeType.Gif;
+      } else if (mimeType.startsWith('image/')) {
+        twitterMimeType = EUploadMimeType.Png; // Works for jpg, png, webp
+      } else if (mimeType.startsWith('video/')) {
+        twitterMimeType = EUploadMimeType.Mp4;
+      } else {
+        return NextResponse.json(
+          { error: 'Unsupported media type. Use images (jpg, png, gif) or videos (mp4).' },
+          { status: 400 }
+        );
+      }
+
+      // Check file size (images: 5MB, GIFs: 15MB, videos: 512MB)
+      const maxSize = mimeType.startsWith('video/') ? 512 * 1024 * 1024
+        : mimeType.includes('gif') ? 15 * 1024 * 1024
+        : 5 * 1024 * 1024;
+
+      if (buffer.length > maxSize) {
+        return NextResponse.json(
+          { error: `File too large. Max size: ${maxSize / 1024 / 1024}MB` },
+          { status: 400 }
+        );
+      }
+
+      // Upload media to Twitter
+      mediaId = await client.v1.uploadMedia(buffer, { mimeType: twitterMimeType });
+    }
+
+    // Post the tweet with or without media
+    const tweetOptions: any = {};
+    if (mediaId) {
+      tweetOptions.media = { media_ids: [mediaId] };
+    }
+
+    const tweet = await client.v2.tweet(content, tweetOptions);
 
     return NextResponse.json({
       success: true,
