@@ -7,8 +7,9 @@ import { Podium } from '@/components/posts/Podium';
 import { EmployeePostCard } from '@/components/posts/EmployeePostCard';
 import { createClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Filter } from 'lucide-react';
 import { Channel } from '@/types';
+import { cn } from '@/lib/utils';
 
 const channelNames: Record<Channel, string> = {
   linkedin: 'LinkedIn',
@@ -17,10 +18,16 @@ const channelNames: Record<Channel, string> = {
 };
 
 const channelDescriptions: Record<Channel, string> = {
-  linkedin: 'Employee Voices - AI-generated thought leadership posts',
+  linkedin: 'AI-generated thought leadership posts',
   twitter: 'Quick updates, threads, and engagement with the tech community',
   instagram: 'Visual content showcasing company culture and behind-the-scenes',
 };
+
+interface Campaign {
+  id: string;
+  name: string;
+  type: string;
+}
 
 interface Post {
   id: string;
@@ -31,6 +38,8 @@ interface Post {
   likes_count: number;
   created_at: string;
   status: string;
+  campaign_id: string;
+  campaign_name: string;
 }
 
 interface Comment {
@@ -47,6 +56,8 @@ export default function ChannelPage() {
   const channel = params.channel as Channel;
   const { user } = useUser();
 
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<string>('all');
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
@@ -57,17 +68,25 @@ export default function ChannelPage() {
 
   useEffect(() => {
     if (channel === 'linkedin') {
-      fetchEmployeeVoicesPosts();
+      fetchCampaignsAndPosts();
     } else {
       setLoading(false);
     }
   }, [channel, user?.email]);
 
-  const fetchEmployeeVoicesPosts = async () => {
+  const fetchCampaignsAndPosts = async () => {
     const supabase = createClient();
 
     try {
-      // Fetch posts from Employee Voices campaign with author info
+      // First fetch all campaigns for this channel
+      const { data: campaignsData } = await supabase
+        .from('campaigns')
+        .select('id, name, type')
+        .order('name');
+
+      setCampaigns(campaignsData || []);
+
+      // Fetch all posts with campaign info
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
@@ -77,13 +96,13 @@ export default function ChannelPage() {
           created_at,
           status,
           author_id,
-          campaigns!inner (
+          campaign_id,
+          campaigns (
             id,
             name,
             type
           )
         `)
-        .eq('campaigns.type', 'employee_voices')
         .order('created_at', { ascending: false });
 
       if (postsError) {
@@ -105,15 +124,18 @@ export default function ChannelPage() {
       // Transform posts with author info
       const transformedPosts: Post[] = (postsData || []).map(post => {
         const author = userMap.get(post.author_id);
+        const campaign = post.campaigns as any;
         return {
           id: post.id,
           content: post.content,
           author_name: author?.name || 'Unknown',
           author_email: author?.email || '',
-          author_avatar: undefined, // Could add avatar URL if stored
+          author_avatar: undefined,
           likes_count: post.likes_count || 0,
           created_at: post.created_at,
           status: post.status,
+          campaign_id: post.campaign_id,
+          campaign_name: campaign?.name || 'Unknown Campaign',
         };
       });
 
@@ -156,7 +178,6 @@ export default function ChannelPage() {
   };
 
   const handleLikeChange = (postId: string, liked: boolean, newCount: number) => {
-    // Update local state
     setPosts(prev => prev.map(p =>
       p.id === postId ? { ...p, likes_count: newCount } : p
     ));
@@ -178,8 +199,13 @@ export default function ChannelPage() {
     ));
   };
 
-  // Get top 3 posts by likes for podium
-  const topPosts = [...posts]
+  // Filter posts by selected campaign
+  const filteredPosts = selectedCampaign === 'all'
+    ? posts
+    : posts.filter(p => p.campaign_id === selectedCampaign);
+
+  // Get top 3 posts by likes for podium (from filtered posts)
+  const topPosts = [...filteredPosts]
     .sort((a, b) => b.likes_count - a.likes_count)
     .slice(0, 3);
 
@@ -206,35 +232,83 @@ export default function ChannelPage() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-brand-brown" />
           </div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-brand-navy-500">No posts yet</p>
-            <p className="text-sm text-brand-navy-400 mt-1">
-              Posts will appear here once the AI generates them
-            </p>
-          </div>
         ) : (
           <div className="max-w-2xl mx-auto">
-            {/* Podium for top 3 */}
-            {topPosts.length >= 3 && (
-              <Podium posts={topPosts} />
+            {/* Campaign Filter */}
+            {campaigns.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Filter className="h-4 w-4 text-brand-navy-500" />
+                  <span className="text-sm font-medium text-brand-navy-700">Filter by Campaign</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedCampaign('all')}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                      selectedCampaign === 'all'
+                        ? "bg-brand-brown text-white"
+                        : "bg-brand-neutral-100 text-brand-navy-700 hover:bg-brand-neutral-200"
+                    )}
+                  >
+                    All Campaigns
+                  </button>
+                  {campaigns.map(campaign => (
+                    <button
+                      key={campaign.id}
+                      onClick={() => setSelectedCampaign(campaign.id)}
+                      className={cn(
+                        "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                        selectedCampaign === campaign.id
+                          ? "bg-brand-brown text-white"
+                          : "bg-brand-neutral-100 text-brand-navy-700 hover:bg-brand-neutral-200"
+                      )}
+                    >
+                      {campaign.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
-            {/* Post feed */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-brand-navy-900">Recent Posts</h3>
-              {posts.map(post => (
-                <EmployeePostCard
-                  key={post.id}
-                  post={post}
-                  currentUserEmail={user?.email || ''}
-                  initialLiked={userLikes.has(post.id)}
-                  initialComments={comments[post.id] || []}
-                  onLikeChange={handleLikeChange}
-                  onContentUpdate={handleContentUpdate}
-                />
-              ))}
-            </div>
+            {filteredPosts.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-brand-navy-500">No posts yet</p>
+                <p className="text-sm text-brand-navy-400 mt-1">
+                  Posts will appear here once the AI generates them
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Podium for top 3 */}
+                {topPosts.length >= 3 && (
+                  <Podium posts={topPosts} />
+                )}
+
+                {/* Post feed */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-brand-navy-900">
+                      {selectedCampaign === 'all' ? 'All Posts' : 'Campaign Posts'}
+                    </h3>
+                    <span className="text-sm text-brand-navy-500">
+                      {filteredPosts.length} post{filteredPosts.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  {filteredPosts.map(post => (
+                    <EmployeePostCard
+                      key={post.id}
+                      post={post}
+                      currentUserEmail={user?.email || ''}
+                      initialLiked={userLikes.has(post.id)}
+                      initialComments={comments[post.id] || []}
+                      onLikeChange={handleLikeChange}
+                      onContentUpdate={handleContentUpdate}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
