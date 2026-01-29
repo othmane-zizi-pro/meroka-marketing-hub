@@ -4,6 +4,65 @@ import { createClient } from '@/lib/supabase/server';
 
 type PostType = 'tweet' | 'reply' | 'quote' | 'retweet' | 'like';
 
+// Send notification to Slack
+async function sendSlackNotification(
+  actionType: string,
+  authorName: string,
+  content: string | null,
+  postUrl: string
+) {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  try {
+    const truncatedContent = content
+      ? (content.length > 200 ? content.substring(0, 200) + '...' : content)
+      : '';
+
+    const message = {
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*New ${actionType} on X* :bird:\n*Posted by:* ${authorName}`,
+          },
+        },
+        ...(truncatedContent ? [{
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `>${truncatedContent.replace(/\n/g, '\n>')}`,
+          },
+        }] : []),
+        {
+          type: 'actions',
+          elements: [
+            {
+              type: 'button',
+              text: {
+                type: 'plain_text',
+                text: 'View Post',
+                emoji: true,
+              },
+              url: postUrl,
+              style: 'primary',
+            },
+          ],
+        },
+      ],
+    };
+
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message),
+    });
+  } catch (error) {
+    console.error('Failed to send Slack notification:', error);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
@@ -178,6 +237,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save to database (only for content-creating actions)
+    const authorName = userData?.name || authUser.email?.split('@')[0] || 'Unknown';
     if (['tweet', 'reply', 'quote'].includes(postType) && content) {
       await supabase.from('social_posts').insert({
         channel: 'x',
@@ -186,8 +246,18 @@ export async function POST(request: NextRequest) {
         external_url: resultUrl,
         author_id: userData?.id || null,
         author_email: authUser.email || '',
-        author_name: userData?.name || authUser.email?.split('@')[0] || 'Unknown',
+        author_name: authorName,
       });
+    }
+
+    // Send Slack notification
+    if (resultUrl) {
+      sendSlackNotification(
+        actionDescription,
+        authorName,
+        content || null,
+        resultUrl
+      );
     }
 
     return NextResponse.json({
