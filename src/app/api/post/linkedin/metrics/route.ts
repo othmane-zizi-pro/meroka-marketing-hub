@@ -42,35 +42,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Build the URL manually with proper encoding
-    // LinkedIn expects: shares=List(urn:li:share:123,urn:li:share:456)
     const orgUrn = `urn:li:organization:${connection.organization_id}`;
-    const sharesList = ids.join(',');
-
-    // Manually construct URL with proper encoding
     const baseUrl = 'https://api.linkedin.com/rest/organizationalEntityShareStatistics';
-    const encodedOrg = encodeURIComponent(orgUrn);
-    const encodedShares = encodeURIComponent(`List(${sharesList})`);
-    const statsUrl = `${baseUrl}?q=organizationalEntity&organizationalEntity=${encodedOrg}&shares=${encodedShares}`;
-
-    const statsResponse = await fetch(statsUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${connection.access_token}`,
-        'X-Restli-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202601',
-      },
-    });
-
-    if (!statsResponse.ok) {
-      const errorText = await statsResponse.text();
-      return NextResponse.json(
-        { error: `LinkedIn API error (${statsResponse.status}): ${errorText.substring(0, 200)}` },
-        { status: 500 }
-      );
-    }
-
-    const statsData = await statsResponse.json();
 
     // Build metrics map
     const metrics: Record<string, {
@@ -83,21 +56,44 @@ export async function GET(request: NextRequest) {
       engagement: number;
     }> = {};
 
-    if (statsData.elements) {
-      for (const element of statsData.elements) {
-        const shareUrn = element.share;
-        if (shareUrn && element.totalShareStatistics) {
-          const stats = element.totalShareStatistics;
-          metrics[shareUrn] = {
-            impressions: stats.impressionCount || 0,
-            uniqueImpressions: stats.uniqueImpressionsCount || 0,
-            clicks: stats.clickCount || 0,
-            likes: stats.likeCount || 0,
-            comments: stats.commentCount || 0,
-            shares: stats.shareCount || 0,
-            engagement: stats.engagement || 0,
-          };
+    // Fetch metrics for each share individually to handle posts from other orgs gracefully
+    for (const shareId of ids) {
+      try {
+        const encodedOrg = encodeURIComponent(orgUrn);
+        const encodedShares = encodeURIComponent(`List(${shareId})`);
+        const statsUrl = `${baseUrl}?q=organizationalEntity&organizationalEntity=${encodedOrg}&shares=${encodedShares}`;
+
+        const statsResponse = await fetch(statsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${connection.access_token}`,
+            'X-Restli-Protocol-Version': '2.0.0',
+            'LinkedIn-Version': '202601',
+          },
+        });
+
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          if (statsData.elements && statsData.elements.length > 0) {
+            const element = statsData.elements[0];
+            if (element.totalShareStatistics) {
+              const stats = element.totalShareStatistics;
+              metrics[shareId] = {
+                impressions: stats.impressionCount || 0,
+                uniqueImpressions: stats.uniqueImpressionsCount || 0,
+                clicks: stats.clickCount || 0,
+                likes: stats.likeCount || 0,
+                comments: stats.commentCount || 0,
+                shares: stats.shareCount || 0,
+                engagement: stats.engagement || 0,
+              };
+            }
+          }
         }
+        // If request fails, we just skip this share (might be from different org)
+      } catch (err) {
+        // Skip failed shares
+        console.error(`Failed to fetch metrics for ${shareId}:`, err);
       }
     }
 
