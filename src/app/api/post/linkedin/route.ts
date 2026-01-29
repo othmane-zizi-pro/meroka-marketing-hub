@@ -173,35 +173,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create the post using LinkedIn's Posts API (organization posting)
+    // Create the post using LinkedIn's REST Posts API (organization posting)
     const postBody: any = {
       author: `urn:li:organization:${organizationId}`,
+      commentary: content,
+      visibility: 'PUBLIC',
+      distribution: {
+        feedDistribution: 'MAIN_FEED',
+        targetEntities: [],
+        thirdPartyDistributionChannels: [],
+      },
       lifecycleState: 'PUBLISHED',
-      specificContent: {
-        'com.linkedin.ugc.ShareContent': {
-          shareCommentary: {
-            text: content,
-          },
-          shareMediaCategory: mediaAsset ? 'IMAGE' : 'NONE',
-          ...(mediaAsset && {
-            media: [{
-              status: 'READY',
-              media: mediaAsset,
-            }],
-          }),
-        },
-      },
-      visibility: {
-        'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
-      },
+      isReshareDisabledByAuthor: false,
     };
 
-    const postResponse = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+    // Add media content if we have an image
+    if (mediaAsset) {
+      postBody.content = {
+        media: {
+          id: mediaAsset,
+        },
+      };
+    }
+
+    const postResponse = await fetch('https://api.linkedin.com/rest/posts', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${connection.access_token}`,
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202401',
       },
       body: JSON.stringify(postBody),
     });
@@ -223,13 +224,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const postData = await postResponse.json();
-    const postId = postData.id;
+    // REST Posts API returns the post URN in the x-restli-id header
+    const postId = postResponse.headers.get('x-restli-id');
 
     // Extract the activity ID for the post URL
-    // LinkedIn post IDs are in format: urn:li:share:123456789 or urn:li:ugcPost:123456789
-    const activityId = postId?.split(':').pop();
-    const postUrl = activityId
+    // LinkedIn post IDs are in format: urn:li:share:123456789
+    const postUrl = postId
       ? `https://www.linkedin.com/feed/update/${postId}/`
       : null;
 
