@@ -84,33 +84,79 @@ export async function GET(request: NextRequest) {
     let organizationName = null;
 
     try {
-      // Get organization access control list - find orgs user can post to
-      const orgsResponse = await fetch(
-        'https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR&projection=(elements*(organizationalTarget~(localizedName)))',
+      // Try multiple approaches to find organizations
+
+      // Approach 1: organizationAcls endpoint
+      let orgsResponse = await fetch(
+        'https://api.linkedin.com/v2/organizationAcls?q=roleAssignee&role=ADMINISTRATOR',
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'X-Restli-Protocol-Version': '2.0.0',
+            'LinkedIn-Version': '202401',
           },
         }
       );
 
       if (orgsResponse.ok) {
         const orgsData = await orgsResponse.json();
+        console.log('organizationAcls response:', JSON.stringify(orgsData));
         if (orgsData.elements && orgsData.elements.length > 0) {
-          // Get the first organization the user administers
           const firstOrg = orgsData.elements[0];
-          // Extract organization ID from URN (e.g., "urn:li:organization:12345")
-          const orgUrn = firstOrg.organizationalTarget;
+          const orgUrn = firstOrg.organization || firstOrg.organizationalTarget;
           organizationId = orgUrn?.split(':').pop() || null;
-          organizationName = firstOrg['organizationalTarget~']?.localizedName || null;
+
+          // Fetch organization details
+          if (organizationId) {
+            const orgDetailsResponse = await fetch(
+              `https://api.linkedin.com/v2/organizations/${organizationId}`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${accessToken}`,
+                  'X-Restli-Protocol-Version': '2.0.0',
+                },
+              }
+            );
+            if (orgDetailsResponse.ok) {
+              const orgDetails = await orgDetailsResponse.json();
+              organizationName = orgDetails.localizedName || null;
+            }
+          }
         }
       } else {
-        console.log('Could not fetch organizations:', await orgsResponse.text());
+        console.log('organizationAcls failed:', orgsResponse.status, await orgsResponse.text());
+      }
+
+      // Approach 2: If still no org, try organizationalEntityAcls
+      if (!organizationId) {
+        orgsResponse = await fetch(
+          'https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR&projection=(elements*(organizationalTarget~(localizedName)))',
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'X-Restli-Protocol-Version': '2.0.0',
+            },
+          }
+        );
+
+        if (orgsResponse.ok) {
+          const orgsData = await orgsResponse.json();
+          console.log('organizationalEntityAcls response:', JSON.stringify(orgsData));
+          if (orgsData.elements && orgsData.elements.length > 0) {
+            const firstOrg = orgsData.elements[0];
+            const orgUrn = firstOrg.organizationalTarget;
+            organizationId = orgUrn?.split(':').pop() || null;
+            organizationName = firstOrg['organizationalTarget~']?.localizedName || null;
+          }
+        } else {
+          console.log('organizationalEntityAcls failed:', orgsResponse.status, await orgsResponse.text());
+        }
       }
     } catch (orgError) {
       console.error('Error fetching organizations:', orgError);
     }
+
+    console.log('Final organization data:', { organizationId, organizationName });
 
     // Store the token in Supabase
     const supabase = await createClient();
