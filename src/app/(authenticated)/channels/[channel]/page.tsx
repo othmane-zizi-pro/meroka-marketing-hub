@@ -92,31 +92,24 @@ export default function ChannelPage() {
         return;
       }
 
-      // Get employee info for each post
+      // Get user info for each post author
       const authorIds = Array.from(new Set(postsData?.map(p => p.author_id).filter(Boolean)));
 
-      const { data: employeesData } = await supabase
-        .from('employees')
+      const { data: usersData } = await supabase
+        .from('users')
         .select('id, name, email, settings')
         .in('id', authorIds);
 
-      const employeeMap = new Map(employeesData?.map(e => [e.id, e]) || []);
-
-      // Also get voice samples for avatars
-      const emails = employeesData?.map(e => e.email) || [];
-      const { data: voiceSamplesData } = await supabase
-        .from('employee_voice_samples')
-        .select('email')
-        .in('email', emails);
+      const userMap = new Map(usersData?.map(u => [u.id, u]) || []);
 
       // Transform posts with author info
       const transformedPosts: Post[] = (postsData || []).map(post => {
-        const employee = employeeMap.get(post.author_id);
+        const author = userMap.get(post.author_id);
         return {
           id: post.id,
           content: post.content,
-          author_name: employee?.name || 'Unknown',
-          author_email: employee?.email || '',
+          author_name: author?.name || 'Unknown',
+          author_email: author?.email || '',
           author_avatar: undefined, // Could add avatar URL if stored
           likes_count: post.likes_count || 0,
           created_at: post.created_at,
