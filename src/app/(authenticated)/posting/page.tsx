@@ -24,7 +24,7 @@ interface ChannelConfig {
 
 const baseChannels: ChannelConfig[] = [
   { id: 'x', name: 'X', icon: XIcon, maxLength: 25000, available: true, color: 'bg-black' },
-  { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, maxLength: 3000, available: true, color: 'bg-blue-600' },
+  { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, maxLength: 3000, available: false, color: 'bg-blue-600' },
   { id: 'instagram', name: 'Instagram', icon: Instagram, maxLength: 2200, available: false, color: 'bg-gradient-to-br from-purple-600 to-pink-500' },
 ];
 
