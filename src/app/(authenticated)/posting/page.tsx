@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink, MessageCircle, Repeat2, Quote, Heart, Link2, BarChart3, Eye, Trophy, Medal } from 'lucide-react';
+import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink, MessageCircle, Repeat2, Quote, Heart, Link2, BarChart3, Eye, Trophy, Medal, Trash2 } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -89,7 +89,11 @@ export default function PostingPage() {
     shares: number;
   }>>({});
   const [loadingMetrics, setLoadingMetrics] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const ADMIN_EMAIL = 'othmane.zizi@meroka.com';
 
   const fetchRecentPosts = async () => {
     const supabase = createClient();
@@ -188,9 +192,43 @@ export default function PostingPage() {
     }
   };
 
+  const fetchCurrentUser = async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUserEmail(user?.email || null);
+  };
+
+  const deletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post from the activity log?')) {
+      return;
+    }
+
+    setDeletingPostId(postId);
+    try {
+      const response = await fetch('/api/post/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId }),
+      });
+
+      if (response.ok) {
+        setRecentPosts(posts => posts.filter(p => p.id !== postId));
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete post');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Failed to delete post');
+    } finally {
+      setDeletingPostId(null);
+    }
+  };
+
   useEffect(() => {
     fetchRecentPosts();
     fetchLinkedInStatus();
+    fetchCurrentUser();
   }, []);
 
   // Build channels array with dynamic LinkedIn availability
@@ -810,17 +848,33 @@ export default function PostingPage() {
                               </div>
                             )}
                           </div>
-                          {post.external_url && (
-                            <a
-                              href={post.external_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex-shrink-0 p-2 text-brand-navy-500 hover:text-brand-brown hover:bg-brand-neutral-100 rounded-lg transition-colors"
-                              title="View post"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          )}
+                          <div className="flex-shrink-0 flex items-center gap-1">
+                            {post.external_url && (
+                              <a
+                                href={post.external_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 text-brand-navy-500 hover:text-brand-brown hover:bg-brand-neutral-100 rounded-lg transition-colors"
+                                title="View post"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            )}
+                            {currentUserEmail === ADMIN_EMAIL && (
+                              <button
+                                onClick={() => deletePost(post.id)}
+                                disabled={deletingPostId === post.id}
+                                className="p-2 text-brand-navy-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                title="Delete from activity log"
+                              >
+                                {deletingPostId === post.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
