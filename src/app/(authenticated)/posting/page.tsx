@@ -32,6 +32,7 @@ interface SocialPost {
   id: string;
   channel: string;
   content: string;
+  external_id: string;
   external_url: string;
   author_name: string;
   author_email: string;
