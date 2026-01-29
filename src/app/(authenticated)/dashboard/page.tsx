@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { currentUser, channelStats } from '@/lib/mock-data';
+import { channelStats } from '@/lib/mock-data';
+import { useUser } from '@/hooks/useUser';
 import { Linkedin, Instagram, ArrowRight, TrendingUp, CheckCircle, Clock } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 
@@ -27,14 +28,17 @@ const channelColors = {
 };
 
 export default function DashboardPage() {
+  const { user } = useUser();
   const totalPending = channelStats.reduce((sum, ch) => sum + ch.pendingPosts, 0);
   const totalApproved = channelStats.reduce((sum, ch) => sum + ch.approvedToday, 0);
   const totalPublished = channelStats.reduce((sum, ch) => sum + ch.publishedThisWeek, 0);
 
+  const firstName = user?.name?.split(' ')[0] || 'there';
+
   return (
     <div className="flex flex-col h-full">
       <Header
-        title={`Welcome back, ${currentUser.name.split(' ')[0]}!`}
+        title={`Welcome back, ${firstName}!`}
         subtitle="Here's what's happening with your marketing content"
       />
 
