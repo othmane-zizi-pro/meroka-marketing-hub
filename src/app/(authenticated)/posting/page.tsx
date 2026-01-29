@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink, MessageCircle, Repeat2, Quote, Heart } from 'lucide-react';
+import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink, MessageCircle, Repeat2, Quote, Heart, Link2 } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -22,9 +22,9 @@ interface ChannelConfig {
   color: string;
 }
 
-const channels: ChannelConfig[] = [
+const baseChannels: ChannelConfig[] = [
   { id: 'x', name: 'X', icon: XIcon, maxLength: 25000, available: true, color: 'bg-black' },
-  { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, maxLength: 3000, available: false, color: 'bg-blue-600' },
+  { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, maxLength: 3000, available: true, color: 'bg-blue-600' },
   { id: 'instagram', name: 'Instagram', icon: Instagram, maxLength: 2200, available: false, color: 'bg-gradient-to-br from-purple-600 to-pink-500' },
 ];
 
@@ -63,9 +63,11 @@ export default function PostingPage() {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string; tweetId?: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; message: string; tweetId?: string; postUrl?: string } | null>(null);
   const [recentPosts, setRecentPosts] = useState<SocialPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [linkedinConnected, setLinkedinConnected] = useState(false);
+  const [linkedinName, setLinkedinName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchRecentPosts = async () => {
@@ -82,9 +84,24 @@ export default function PostingPage() {
     setLoadingPosts(false);
   };
 
+  const fetchLinkedInStatus = async () => {
+    try {
+      const response = await fetch('/api/post/linkedin');
+      const data = await response.json();
+      setLinkedinConnected(data.connected);
+      setLinkedinName(data.linkedinName || null);
+    } catch (error) {
+      console.error('Error fetching LinkedIn status:', error);
+    }
+  };
+
   useEffect(() => {
     fetchRecentPosts();
+    fetchLinkedInStatus();
   }, []);
+
+  // Build channels array with dynamic LinkedIn availability
+  const channels = baseChannels;
 
   const currentChannel = channels.find(c => c.id === selectedChannel)!;
   const currentPostType = postTypes.find(p => p.id === selectedPostType)!;
@@ -98,10 +115,14 @@ export default function PostingPage() {
   };
 
   const tweetId = extractTweetId(tweetUrl);
-  const needsTweetUrl = currentPostType.requiresTweetUrl;
-  const needsContent = currentPostType.requiresContent;
+  const needsTweetUrl = selectedChannel === 'x' && currentPostType.requiresTweetUrl;
+  const needsContent = selectedChannel === 'linkedin' || currentPostType.requiresContent;
+
+  // For LinkedIn, check if connected
+  const linkedinReady = selectedChannel !== 'linkedin' || linkedinConnected;
 
   const canPost = currentChannel.available &&
+    linkedinReady &&
     (!needsContent || (content.trim().length > 0 && !isOverLimit)) &&
     (!needsTweetUrl || tweetId);
 
@@ -159,47 +180,75 @@ export default function PostingPage() {
 
     try {
       const formData = new FormData();
-      formData.append('postType', selectedPostType);
-      if (needsContent) {
+
+      if (selectedChannel === 'linkedin') {
+        // LinkedIn posting
         formData.append('content', content.trim());
-      }
-      if (needsTweetUrl && tweetId) {
-        formData.append('tweetId', tweetId);
-      }
-      if (mediaFile && selectedPostType === 'tweet') {
-        formData.append('media', mediaFile);
-      }
 
-      const response = await fetch('/api/post/x', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        const actionMessages: Record<PostType, string> = {
-          tweet: 'Tweet posted successfully!',
-          reply: 'Reply posted successfully!',
-          quote: 'Quote tweet posted successfully!',
-          retweet: 'Retweeted successfully!',
-          like: 'Liked successfully!',
-        };
-        setResult({
-          success: true,
-          message: actionMessages[selectedPostType],
-          tweetId: data.tweet?.id || data.result?.id,
+        const response = await fetch('/api/post/linkedin', {
+          method: 'POST',
+          body: formData,
         });
-        setContent('');
-        setTweetUrl('');
-        removeMedia();
-        // Refresh recent posts
-        fetchRecentPosts();
+
+        const data = await response.json();
+
+        if (response.ok) {
+          setResult({
+            success: true,
+            message: 'Posted to LinkedIn successfully!',
+            postUrl: data.post?.url,
+          });
+          setContent('');
+          fetchRecentPosts();
+        } else {
+          setResult({
+            success: false,
+            message: data.error || 'Failed to post to LinkedIn',
+          });
+        }
       } else {
-        setResult({
-          success: false,
-          message: data.error || 'Failed to post',
+        // X (Twitter) posting
+        formData.append('postType', selectedPostType);
+        if (needsContent) {
+          formData.append('content', content.trim());
+        }
+        if (needsTweetUrl && tweetId) {
+          formData.append('tweetId', tweetId);
+        }
+        if (mediaFile && selectedPostType === 'tweet') {
+          formData.append('media', mediaFile);
+        }
+
+        const response = await fetch('/api/post/x', {
+          method: 'POST',
+          body: formData,
         });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          const actionMessages: Record<PostType, string> = {
+            tweet: 'Tweet posted successfully!',
+            reply: 'Reply posted successfully!',
+            quote: 'Quote tweet posted successfully!',
+            retweet: 'Retweeted successfully!',
+            like: 'Liked successfully!',
+          };
+          setResult({
+            success: true,
+            message: actionMessages[selectedPostType],
+            tweetId: data.tweet?.id || data.result?.id,
+          });
+          setContent('');
+          setTweetUrl('');
+          removeMedia();
+          fetchRecentPosts();
+        } else {
+          setResult({
+            success: false,
+            message: data.error || 'Failed to post',
+          });
+        }
       }
     } catch (error) {
       setResult({
@@ -230,6 +279,7 @@ export default function PostingPage() {
                 {channels.map((channel) => {
                   const Icon = channel.icon;
                   const isSelected = selectedChannel === channel.id;
+                  const isLinkedinNotConnected = channel.id === 'linkedin' && !linkedinConnected;
 
                   return (
                     <button
@@ -259,12 +309,46 @@ export default function PostingPage() {
                       {!channel.available && (
                         <span className="text-xs text-brand-navy-400">Coming soon</span>
                       )}
+                      {channel.id === 'linkedin' && linkedinConnected && (
+                        <span className="text-xs text-green-600 flex items-center gap-1">
+                          <Check className="h-3 w-3" /> Connected
+                        </span>
+                      )}
+                      {isLinkedinNotConnected && (
+                        <span className="text-xs text-brand-navy-400">Not connected</span>
+                      )}
                     </button>
                   );
                 })}
               </div>
             </CardContent>
           </Card>
+
+          {/* LinkedIn Connect Prompt */}
+          {selectedChannel === 'linkedin' && !linkedinConnected && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="py-6">
+                <div className="flex flex-col items-center gap-4 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-600 text-white">
+                    <Linkedin className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-brand-navy-900">Connect LinkedIn</h3>
+                    <p className="text-sm text-brand-navy-600 mt-1">
+                      Connect your LinkedIn account to post directly from MCUBE
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => window.location.href = '/api/auth/linkedin'}
+                    className="gap-2 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Link2 className="h-4 w-4" />
+                    Connect LinkedIn Account
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Post Type Selection (only for X) */}
           {selectedChannel === 'x' && (
@@ -306,7 +390,8 @@ export default function PostingPage() {
           <Card className="border-brand-neutral-100">
             <CardHeader>
               <CardTitle className="text-brand-navy-900">
-                {selectedPostType === 'tweet' ? 'Compose' :
+                {selectedChannel === 'linkedin' ? 'Compose Post' :
+                 selectedPostType === 'tweet' ? 'Compose' :
                  selectedPostType === 'reply' ? 'Reply' :
                  selectedPostType === 'quote' ? 'Quote Tweet' :
                  selectedPostType === 'retweet' ? 'Retweet' : 'Like'}
@@ -436,9 +521,9 @@ export default function PostingPage() {
                     <AlertCircle className="h-5 w-5" />
                   )}
                   <span>{result.message}</span>
-                  {result.tweetId && (
+                  {(result.tweetId || result.postUrl) && (
                     <a
-                      href={`https://x.com/i/status/${result.tweetId}`}
+                      href={result.postUrl || `https://x.com/i/status/${result.tweetId}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="ml-auto text-sm underline"
@@ -459,20 +544,30 @@ export default function PostingPage() {
                   {isPosting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      {selectedPostType === 'like' ? 'Liking...' :
+                      {selectedChannel === 'linkedin' ? 'Posting...' :
+                       selectedPostType === 'like' ? 'Liking...' :
                        selectedPostType === 'retweet' ? 'Retweeting...' : 'Posting...'}
                     </>
                   ) : (
                     <>
-                      {(() => {
-                        const Icon = currentPostType.icon;
-                        return <Icon className="h-4 w-4" />;
-                      })()}
-                      {selectedPostType === 'tweet' && `Post to ${currentChannel.name}`}
-                      {selectedPostType === 'reply' && 'Send Reply'}
-                      {selectedPostType === 'quote' && 'Post Quote'}
-                      {selectedPostType === 'retweet' && 'Retweet'}
-                      {selectedPostType === 'like' && 'Like Tweet'}
+                      {selectedChannel === 'linkedin' ? (
+                        <>
+                          <Linkedin className="h-4 w-4" />
+                          Post to LinkedIn
+                        </>
+                      ) : (
+                        <>
+                          {(() => {
+                            const Icon = currentPostType.icon;
+                            return <Icon className="h-4 w-4" />;
+                          })()}
+                          {selectedPostType === 'tweet' && `Post to ${currentChannel.name}`}
+                          {selectedPostType === 'reply' && 'Send Reply'}
+                          {selectedPostType === 'quote' && 'Post Quote'}
+                          {selectedPostType === 'retweet' && 'Retweet'}
+                          {selectedPostType === 'like' && 'Like Tweet'}
+                        </>
+                      )}
                     </>
                   )}
                 </Button>
