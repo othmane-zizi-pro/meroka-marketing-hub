@@ -79,84 +79,15 @@ export async function GET(request: NextRequest) {
       linkedinName = `${profileData.localizedFirstName || ''} ${profileData.localizedLastName || ''}`.trim() || null;
     }
 
-    // Fetch organizations the user can post as (requires Advertising API)
-    let organizationId = null;
-    let organizationName = null;
+    // Use hardcoded Meroka organization ID (known from previous lookup)
+    // This ensures we always connect to the correct company page
+    const MEROKA_ORG_ID = '81916599';
+    const MEROKA_ORG_NAME = 'Meroka';
 
-    try {
-      // Try multiple approaches to find organizations
+    let organizationId: string | null = MEROKA_ORG_ID;
+    let organizationName: string | null = MEROKA_ORG_NAME;
 
-      // Approach 1: organizationAcls endpoint
-      let orgsResponse = await fetch(
-        'https://api.linkedin.com/v2/organizationAcls?q=roleAssignee&role=ADMINISTRATOR',
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'X-Restli-Protocol-Version': '2.0.0',
-            'LinkedIn-Version': '202401',
-          },
-        }
-      );
-
-      if (orgsResponse.ok) {
-        const orgsData = await orgsResponse.json();
-        console.log('organizationAcls response:', JSON.stringify(orgsData));
-        if (orgsData.elements && orgsData.elements.length > 0) {
-          const firstOrg = orgsData.elements[0];
-          const orgUrn = firstOrg.organization || firstOrg.organizationalTarget;
-          organizationId = orgUrn?.split(':').pop() || null;
-
-          // Fetch organization details
-          if (organizationId) {
-            const orgDetailsResponse = await fetch(
-              `https://api.linkedin.com/v2/organizations/${organizationId}`,
-              {
-                headers: {
-                  'Authorization': `Bearer ${accessToken}`,
-                  'X-Restli-Protocol-Version': '2.0.0',
-                },
-              }
-            );
-            if (orgDetailsResponse.ok) {
-              const orgDetails = await orgDetailsResponse.json();
-              organizationName = orgDetails.localizedName || null;
-            }
-          }
-        }
-      } else {
-        console.log('organizationAcls failed:', orgsResponse.status, await orgsResponse.text());
-      }
-
-      // Approach 2: If still no org, try organizationalEntityAcls
-      if (!organizationId) {
-        orgsResponse = await fetch(
-          'https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR&projection=(elements*(organizationalTarget~(localizedName)))',
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'X-Restli-Protocol-Version': '2.0.0',
-            },
-          }
-        );
-
-        if (orgsResponse.ok) {
-          const orgsData = await orgsResponse.json();
-          console.log('organizationalEntityAcls response:', JSON.stringify(orgsData));
-          if (orgsData.elements && orgsData.elements.length > 0) {
-            const firstOrg = orgsData.elements[0];
-            const orgUrn = firstOrg.organizationalTarget;
-            organizationId = orgUrn?.split(':').pop() || null;
-            organizationName = firstOrg['organizationalTarget~']?.localizedName || null;
-          }
-        } else {
-          console.log('organizationalEntityAcls failed:', orgsResponse.status, await orgsResponse.text());
-        }
-      }
-    } catch (orgError) {
-      console.error('Error fetching organizations:', orgError);
-    }
-
-    console.log('Final organization data:', { organizationId, organizationName });
+    console.log('Using Meroka organization:', { organizationId, organizationName });
 
     // Store the token in Supabase
     const supabase = await createClient();
