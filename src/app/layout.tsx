@@ -5,7 +5,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Meroka Marketing Hub',
+  title: 'MCUBE',
   description: 'AI-powered social media content for Meroka employees',
 };
 

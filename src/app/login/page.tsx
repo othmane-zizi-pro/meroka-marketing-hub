@@ -50,7 +50,7 @@ function LoginForm() {
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-brown text-white text-2xl font-bold shadow-md">
           M
         </div>
-        <CardTitle className="text-2xl text-brand-navy-900">Meroka Marketing Hub</CardTitle>
+        <CardTitle className="text-2xl text-brand-navy-900">MCUBE</CardTitle>
         <CardDescription className="text-brand-navy-600">
           AI-powered social media content for Meroka employees
         </CardDescription>
@@ -109,7 +109,7 @@ export default function LoginPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-brown text-white text-2xl font-bold shadow-md">
               M
             </div>
-            <CardTitle className="text-2xl text-brand-navy-900">Meroka Marketing Hub</CardTitle>
+            <CardTitle className="text-2xl text-brand-navy-900">MCUBE</CardTitle>
           </CardHeader>
           <CardContent className="flex justify-center py-8">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-navy-200 border-t-brand-navy-800" />

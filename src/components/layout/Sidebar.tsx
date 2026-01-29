@@ -37,7 +37,7 @@ export function Sidebar() {
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-brown font-bold text-white">
           M
         </div>
-        <span className="text-lg font-semibold text-brand-neutral-50">Meroka Hub</span>
+        <span className="text-lg font-semibold text-brand-neutral-50">MCUBE</span>
       </div>
 
       {/* Navigation */}
