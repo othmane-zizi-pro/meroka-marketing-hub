@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     // public_metrics: likes, retweets, replies, quotes (always available)
     // non_public_metrics: impressions, user_profile_clicks, url_link_clicks (requires elevated access)
     const tweets = await client.v2.tweets(ids, {
-      'tweet.fields': ['public_metrics', 'created_at'],
+      'tweet.fields': ['public_metrics', 'non_public_metrics', 'organic_metrics', 'created_at'],
     });
 
     // Build metrics map
@@ -69,11 +69,15 @@ export async function GET(request: NextRequest) {
     if (tweets.data) {
       for (const tweet of tweets.data) {
         if (tweet.public_metrics) {
+          const nonPublic = (tweet as any).non_public_metrics;
+          const organic = (tweet as any).organic_metrics;
+
           metrics[tweet.id] = {
             likes: tweet.public_metrics.like_count || 0,
             retweets: tweet.public_metrics.retweet_count || 0,
             replies: tweet.public_metrics.reply_count || 0,
             quotes: tweet.public_metrics.quote_count || 0,
+            impressions: nonPublic?.impression_count || organic?.impression_count || undefined,
           };
         }
       }

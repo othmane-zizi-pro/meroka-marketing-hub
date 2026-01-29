@@ -74,6 +74,7 @@ export default function PostingPage() {
     retweets: number;
     replies: number;
     quotes: number;
+    impressions?: number;
   }>>({});
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -658,6 +659,12 @@ export default function PostingPage() {
                                   </span>
                                 ) : metrics ? (
                                   <>
+                                    {metrics.impressions !== undefined && (
+                                      <div className="flex items-center gap-1 text-xs text-brand-navy-500" title="Impressions">
+                                        <Eye className="h-3.5 w-3.5" />
+                                        <span>{metrics.impressions.toLocaleString()}</span>
+                                      </div>
+                                    )}
                                     <div className="flex items-center gap-1 text-xs text-brand-navy-500" title="Likes">
                                       <Heart className="h-3.5 w-3.5" />
                                       <span>{metrics.likes}</span>
