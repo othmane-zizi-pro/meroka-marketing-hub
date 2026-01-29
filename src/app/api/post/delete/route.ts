@@ -32,20 +32,40 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { error } = await supabase
+    // First check if the post exists
+    const { data: existingPost } = await supabase
+      .from('social_posts')
+      .select('id')
+      .eq('id', postId)
+      .single();
+
+    console.log('Existing post check:', { postId, existingPost });
+
+    if (!existingPost) {
+      return NextResponse.json(
+        { error: 'Post not found' },
+        { status: 404 }
+      );
+    }
+
+    // Try to delete
+    const { error, count } = await supabase
       .from('social_posts')
       .delete()
-      .eq('id', postId);
+      .eq('id', postId)
+      .select();
+
+    console.log('Delete result:', { error, count, postId });
 
     if (error) {
       console.error('Error deleting post:', error);
       return NextResponse.json(
-        { error: 'Failed to delete post' },
+        { error: `Failed to delete: ${error.message}` },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, deleted: true });
   } catch (error) {
     console.error('Delete post error:', error);
     return NextResponse.json(
