@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
 
     // Build the authorization URL
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://meroka-marketing-hub.vercel.app'}/api/auth/linkedin/callback`;
-    // Request organization posting permissions (requires Advertising API access)
-    const scope = 'w_organization_social r_organization_social';
+    // Request organization posting and analytics permissions (requires Advertising API access)
+    const scope = 'w_organization_social r_organization_social rw_organization_admin';
     const state = Buffer.from(JSON.stringify({
       userId: user.id,
       returnUrl: request.nextUrl.searchParams.get('returnUrl') || '/posting'
