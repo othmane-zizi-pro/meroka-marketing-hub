@@ -78,15 +78,16 @@ export default function ChannelPage() {
     const supabase = createClient();
 
     try {
-      // First fetch all campaigns for this channel
+      // First fetch all active campaigns for this channel
       const { data: campaignsData } = await supabase
         .from('campaigns')
         .select('id, name, type')
+        .eq('is_active', true)
         .order('name');
 
       setCampaigns(campaignsData || []);
 
-      // Fetch all posts with campaign info
+      // Fetch all posts from active campaigns
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
@@ -97,12 +98,14 @@ export default function ChannelPage() {
           status,
           author_id,
           campaign_id,
-          campaigns (
+          campaigns!inner (
             id,
             name,
-            type
+            type,
+            is_active
           )
         `)
+        .eq('campaigns.is_active', true)
         .order('created_at', { ascending: false });
 
       if (postsError) {
