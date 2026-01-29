@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TwitterApi, EUploadMimeType } from 'twitter-api-v2';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get authenticated user
+    const supabase = await createClient();
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+
+    if (!authUser) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Get user details from users table
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id, name, email')
+      .eq('email', authUser.email)
+      .single();
+
     const formData = await request.formData();
     const content = formData.get('content') as string;
     const mediaFile = formData.get('media') as File | null;
@@ -14,9 +33,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (content.length > 280) {
+    if (content.length > 25000) {
       return NextResponse.json(
-        { error: 'Content exceeds 280 characters' },
+        { error: 'Content exceeds 25,000 characters' },
         { status: 400 }
       );
     }
@@ -89,11 +108,25 @@ export async function POST(request: NextRequest) {
 
     const tweet = await client.v2.tweet(content, tweetOptions);
 
+    const tweetUrl = `https://x.com/i/status/${tweet.data.id}`;
+
+    // Save post to database
+    await supabase.from('social_posts').insert({
+      channel: 'x',
+      content: content,
+      external_id: tweet.data.id,
+      external_url: tweetUrl,
+      author_id: userData?.id || null,
+      author_email: authUser.email || '',
+      author_name: userData?.name || authUser.email?.split('@')[0] || 'Unknown',
+    });
+
     return NextResponse.json({
       success: true,
       tweet: {
         id: tweet.data.id,
         text: tweet.data.text,
+        url: tweetUrl,
       },
     });
   } catch (error: any) {

@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film } from 'lucide-react';
+import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
+import { formatDistanceToNow } from 'date-fns';
 
 type Channel = 'x' | 'linkedin' | 'instagram';
 
@@ -20,10 +22,20 @@ interface ChannelConfig {
 }
 
 const channels: ChannelConfig[] = [
-  { id: 'x', name: 'X', icon: XIcon, maxLength: 280, available: true, color: 'bg-black' },
+  { id: 'x', name: 'X', icon: XIcon, maxLength: 25000, available: true, color: 'bg-black' },
   { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, maxLength: 3000, available: false, color: 'bg-blue-600' },
   { id: 'instagram', name: 'Instagram', icon: Instagram, maxLength: 2200, available: false, color: 'bg-gradient-to-br from-purple-600 to-pink-500' },
 ];
+
+interface SocialPost {
+  id: string;
+  channel: string;
+  content: string;
+  external_url: string;
+  author_name: string;
+  author_email: string;
+  created_at: string;
+}
 
 export default function PostingPage() {
   const [selectedChannel, setSelectedChannel] = useState<Channel>('x');
@@ -32,7 +44,27 @@ export default function PostingPage() {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; tweetId?: string } | null>(null);
+  const [recentPosts, setRecentPosts] = useState<SocialPost[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchRecentPosts = async () => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('social_posts')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (!error && data) {
+      setRecentPosts(data);
+    }
+    setLoadingPosts(false);
+  };
+
+  useEffect(() => {
+    fetchRecentPosts();
+  }, []);
 
   const currentChannel = channels.find(c => c.id === selectedChannel)!;
   const characterCount = content.length;
@@ -113,6 +145,8 @@ export default function PostingPage() {
         });
         setContent('');
         removeMedia();
+        // Refresh recent posts
+        fetchRecentPosts();
       } else {
         setResult({
           success: false,
@@ -313,15 +347,61 @@ export default function PostingPage() {
             </CardContent>
           </Card>
 
-          {/* Recent Posts (placeholder) */}
+          {/* Recent Posts */}
           <Card className="border-brand-neutral-100">
             <CardHeader>
               <CardTitle className="text-brand-navy-900">Recent Posts</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-brand-navy-500 text-center py-8">
-                Your recent posts will appear here
-              </p>
+              {loadingPosts ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-brand-brown" />
+                </div>
+              ) : recentPosts.length === 0 ? (
+                <p className="text-brand-navy-500 text-center py-8">
+                  No posts yet. Your posts will appear here.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {recentPosts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="p-4 border border-brand-neutral-200 rounded-lg hover:border-brand-neutral-300 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-brand-navy-800 whitespace-pre-wrap break-words">
+                            {post.content}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2 text-xs text-brand-navy-500">
+                            <div className="flex items-center gap-1">
+                              {post.channel === 'x' && <XIcon className="h-3 w-3" />}
+                              {post.channel === 'linkedin' && <Linkedin className="h-3 w-3" />}
+                              {post.channel === 'instagram' && <Instagram className="h-3 w-3" />}
+                              <span className="capitalize">{post.channel === 'x' ? 'X' : post.channel}</span>
+                            </div>
+                            <span>•</span>
+                            <span>{post.author_name}</span>
+                            <span>•</span>
+                            <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
+                          </div>
+                        </div>
+                        {post.external_url && (
+                          <a
+                            href={post.external_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-shrink-0 p-2 text-brand-navy-500 hover:text-brand-brown hover:bg-brand-neutral-100 rounded-lg transition-colors"
+                            title="View post"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
