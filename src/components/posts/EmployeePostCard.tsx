@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Heart, MessageCircle, Send, ChevronDown, ChevronUp } from 'lucide-react';
+import { Heart, MessageCircle, Send, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,7 @@ interface EmployeePostCardProps {
   initialLiked?: boolean;
   initialComments?: Comment[];
   onLikeChange?: (postId: string, liked: boolean, newCount: number) => void;
+  onContentUpdate?: (postId: string, newContent: string) => void;
 }
 
 export function EmployeePostCard({
@@ -39,6 +40,7 @@ export function EmployeePostCard({
   initialLiked = false,
   initialComments = [],
   onLikeChange,
+  onContentUpdate,
 }: EmployeePostCardProps) {
   const [liked, setLiked] = useState(initialLiked);
   const [likesCount, setLikesCount] = useState(post.likes_count);
@@ -47,6 +49,40 @@ export function EmployeePostCard({
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [editLoading, setEditLoading] = useState(false);
+
+  // Check if current user is the featured employee (can edit)
+  const canEdit = currentUserEmail && post.author_email &&
+    currentUserEmail.toLowerCase() === post.author_email.toLowerCase();
+
+  const handleSaveEdit = async () => {
+    if (editLoading || !editContent.trim()) return;
+    setEditLoading(true);
+
+    const supabase = createClient();
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ content: editContent.trim() })
+        .eq('id', post.id);
+
+      if (!error) {
+        onContentUpdate?.(post.id, editContent.trim());
+        setIsEditing(false);
+      }
+    } catch (error) {
+      console.error('Error updating post:', error);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditContent(post.content);
+    setIsEditing(false);
+  };
 
   const handleLike = async () => {
     if (likeLoading) return;
@@ -119,23 +155,66 @@ export function EmployeePostCard({
       <div className="p-4 border-b border-brand-neutral-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Avatar src={post.author_avatar} alt={post.author_name} size="md" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-brown font-bold text-white text-sm">
+              M
+            </div>
             <div>
-              <p className="font-medium text-brand-navy-900">{post.author_name}</p>
+              <p className="font-medium text-brand-navy-900">Meroka</p>
               <p className="text-xs text-brand-navy-400">
-                {formatDistanceToNow(new Date(post.created_at))}
+                featuring {post.author_name} · {formatDistanceToNow(new Date(post.created_at))}
               </p>
             </div>
           </div>
-          <span className={cn("px-2 py-1 rounded-full text-xs font-medium", statusBadge.color)}>
-            {statusBadge.label}
-          </span>
+          <div className="flex items-center gap-2">
+            {canEdit && !isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-1.5 rounded-lg hover:bg-brand-neutral-50 text-brand-navy-400 hover:text-brand-navy-600 transition-colors"
+                title="Edit post"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            )}
+            <span className={cn("px-2 py-1 rounded-full text-xs font-medium", statusBadge.color)}>
+              {statusBadge.label}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="p-4">
-        <p className="text-brand-navy-800 whitespace-pre-wrap">{post.content}</p>
+        {isEditing ? (
+          <div className="space-y-3">
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full min-h-[150px] p-3 text-sm border border-brand-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-brown/50 resize-none"
+              placeholder="Edit your post..."
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelEdit}
+                disabled={editLoading}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveEdit}
+                disabled={editLoading || !editContent.trim()}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Save
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-brand-navy-800 whitespace-pre-wrap">{post.content}</p>
+        )}
       </div>
 
       {/* Actions */}

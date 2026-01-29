@@ -139,13 +139,23 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <div>
           <h2 className="text-lg font-semibold mb-4 text-brand-navy-900">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Link href="/campaigns/employee-voices">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link href="/channels/linkedin">
               <Card className="cursor-pointer transition-all hover:shadow-md hover:border-brand-brown/50 border-brand-neutral-100">
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-brand-navy-900">Employee Voices Campaign</h3>
+                  <h3 className="font-semibold text-brand-navy-900">Employee Voices</h3>
                   <p className="text-sm text-brand-navy-600 mt-1">
-                    Review and upvote employee-generated posts
+                    View and engage with AI-generated posts
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/kpis">
+              <Card className="cursor-pointer transition-all hover:shadow-md hover:border-brand-brown/50 border-brand-neutral-100">
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-brand-navy-900">View KPIs</h3>
+                  <p className="text-sm text-brand-navy-600 mt-1">
+                    Track marketing performance metrics
                   </p>
                 </CardContent>
               </Card>

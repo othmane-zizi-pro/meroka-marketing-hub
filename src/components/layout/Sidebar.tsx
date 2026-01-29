@@ -7,7 +7,8 @@ import {
   LayoutDashboard,
   Linkedin,
   Instagram,
-  Megaphone,
+  BarChart3,
+  Trophy,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -20,7 +21,8 @@ const navigation = [
   { name: 'LinkedIn', href: '/channels/linkedin', icon: Linkedin },
   { name: 'X', href: '/channels/twitter', icon: XIcon },
   { name: 'Instagram', href: '/channels/instagram', icon: Instagram },
-  { name: 'Campaigns', href: '/campaigns', icon: Megaphone },
+  { name: 'KPIs', href: '/kpis', icon: BarChart3 },
+  { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 

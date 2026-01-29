@@ -47,20 +47,21 @@ export function Podium({ posts }: PodiumProps) {
 
           return (
             <div key={post.id} className="flex flex-col items-center w-full max-w-[200px]">
-              {/* Author card */}
+              {/* Post card */}
               <div className={cn(
                 "w-full bg-white rounded-xl p-4 mb-2 shadow-lg transform transition-transform hover:scale-105",
                 isFirst && "ring-2 ring-yellow-400"
               )}>
                 <div className="flex items-center gap-2 mb-2">
-                  <Avatar
-                    src={post.author_avatar}
-                    alt={post.author_name}
-                    size="sm"
-                  />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-brown font-bold text-white text-xs">
+                    M
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-brand-navy-900 truncate">
-                      {post.author_name}
+                      Meroka
+                    </p>
+                    <p className="text-xs text-brand-navy-400 truncate">
+                      ft. {post.author_name}
                     </p>
                   </div>
                 </div>

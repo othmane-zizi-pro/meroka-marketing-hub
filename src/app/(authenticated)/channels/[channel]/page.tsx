@@ -179,6 +179,12 @@ export default function ChannelPage() {
     });
   };
 
+  const handleContentUpdate = (postId: string, newContent: string) => {
+    setPosts(prev => prev.map(p =>
+      p.id === postId ? { ...p, content: newContent } : p
+    ));
+  };
+
   // Get top 3 posts by likes for podium
   const topPosts = [...posts]
     .sort((a, b) => b.likes_count - a.likes_count)
@@ -232,6 +238,7 @@ export default function ChannelPage() {
                   initialLiked={userLikes.has(post.id)}
                   initialComments={comments[post.id] || []}
                   onLikeChange={handleLikeChange}
+                  onContentUpdate={handleContentUpdate}
                 />
               ))}
             </div>
