@@ -42,25 +42,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Build the shares list for the API query
-    // Format: List(urn:li:share:123,urn:li:share:456)
-    const sharesList = `List(${ids.join(',')})`;
+    // Build the URL manually with proper encoding
+    // LinkedIn expects: shares=List(urn:li:share:123,urn:li:share:456)
     const orgUrn = `urn:li:organization:${connection.organization_id}`;
+    const sharesList = ids.join(',');
 
-    // Fetch share statistics from LinkedIn
-    const statsUrl = new URL('https://api.linkedin.com/rest/organizationalEntityShareStatistics');
-    statsUrl.searchParams.set('q', 'organizationalEntity');
-    statsUrl.searchParams.set('organizationalEntity', orgUrn);
-    statsUrl.searchParams.set('shares', sharesList);
+    // Manually construct URL with proper encoding
+    const baseUrl = 'https://api.linkedin.com/rest/organizationalEntityShareStatistics';
+    const encodedOrg = encodeURIComponent(orgUrn);
+    const encodedShares = encodeURIComponent(`List(${sharesList})`);
+    const statsUrl = `${baseUrl}?q=organizationalEntity&organizationalEntity=${encodedOrg}&shares=${encodedShares}`;
 
     console.log('LinkedIn metrics request:', {
-      url: statsUrl.toString(),
+      url: statsUrl,
       orgUrn,
       sharesList,
       ids,
     });
 
-    const statsResponse = await fetch(statsUrl.toString(), {
+    const statsResponse = await fetch(statsUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${connection.access_token}`,
