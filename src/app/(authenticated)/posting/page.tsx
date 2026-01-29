@@ -141,10 +141,35 @@ export default function PostingPage() {
       const data = await response.json();
 
       if (response.ok && data.metrics) {
-        setLinkedinMetrics(data.metrics);
+        // Add empty metrics for posts not returned (new posts with no data)
+        const metricsWithDefaults: typeof linkedinMetrics = {};
+        for (const id of postIds) {
+          metricsWithDefaults[id] = data.metrics[id] || {
+            impressions: 0,
+            uniqueImpressions: 0,
+            clicks: 0,
+            likes: 0,
+            comments: 0,
+            shares: 0,
+          };
+        }
+        setLinkedinMetrics(metricsWithDefaults);
+      } else {
+        // On error, set empty metrics so UI doesn't stay stuck
+        const emptyMetrics: typeof linkedinMetrics = {};
+        for (const id of postIds) {
+          emptyMetrics[id] = { impressions: 0, uniqueImpressions: 0, clicks: 0, likes: 0, comments: 0, shares: 0 };
+        }
+        setLinkedinMetrics(emptyMetrics);
       }
     } catch (error) {
       console.error('Error fetching LinkedIn metrics:', error);
+      // Set empty metrics on error
+      const emptyMetrics: typeof linkedinMetrics = {};
+      for (const id of postIds) {
+        emptyMetrics[id] = { impressions: 0, uniqueImpressions: 0, clicks: 0, likes: 0, comments: 0, shares: 0 };
+      }
+      setLinkedinMetrics(emptyMetrics);
     }
   };
 
