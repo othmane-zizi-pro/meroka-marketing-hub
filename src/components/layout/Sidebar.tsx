@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { XIcon } from '@/components/ui/icons';
-import { currentUser } from '@/lib/mock-data';
+import { useUser, signOut } from '@/hooks/useUser';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -26,6 +26,7 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, loading } = useUser();
 
   return (
     <div className="flex h-screen w-64 flex-col bg-brand-navy-800">
@@ -64,23 +65,40 @@ export function Sidebar() {
       {/* User section */}
       <div className="border-t border-brand-navy-600/30 p-4">
         <div className="flex items-center gap-3">
-          <Avatar
-            src={currentUser.avatar}
-            alt={currentUser.name}
-            size="md"
-          />
+          {loading ? (
+            <div className="h-10 w-10 rounded-full bg-brand-navy-600 animate-pulse" />
+          ) : (
+            <Avatar
+              src={user?.avatar || undefined}
+              alt={user?.name || 'User'}
+              size="md"
+            />
+          )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-brand-neutral-50 truncate">{currentUser.name}</p>
-            <p className="text-xs text-brand-navy-300 truncate">{currentUser.role}</p>
+            {loading ? (
+              <>
+                <div className="h-4 w-24 bg-brand-navy-600 rounded animate-pulse" />
+                <div className="h-3 w-32 bg-brand-navy-600 rounded animate-pulse mt-1" />
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-brand-neutral-50 truncate">
+                  {user?.name || 'User'}
+                </p>
+                <p className="text-xs text-brand-navy-300 truncate">
+                  {user?.email || ''}
+                </p>
+              </>
+            )}
           </div>
         </div>
-        <Link
-          href="/login"
-          className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-navy-300 hover:bg-brand-navy-600/50 hover:text-brand-neutral-50 transition-colors"
+        <button
+          onClick={() => signOut()}
+          className="mt-3 w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-navy-300 hover:bg-brand-navy-600/50 hover:text-brand-neutral-50 transition-colors"
         >
           <LogOut className="h-4 w-4" />
           Sign out
-        </Link>
+        </button>
       </div>
     </div>
   );
