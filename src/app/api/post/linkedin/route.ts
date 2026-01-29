@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
             'Authorization': `Bearer ${connection.access_token}`,
             'Content-Type': 'application/json',
             'X-Restli-Protocol-Version': '2.0.0',
-            'LinkedIn-Version': '202501',
+            'LinkedIn-Version': '202411',
           },
           body: JSON.stringify({
             initializeUploadRequest: {
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${connection.access_token}`,
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202501',
+        'LinkedIn-Version': '202411',
       },
       body: JSON.stringify(postBody),
     });
