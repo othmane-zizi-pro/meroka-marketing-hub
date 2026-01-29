@@ -11,6 +11,7 @@ import {
   Trophy,
   Settings,
   LogOut,
+  Send,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { XIcon } from '@/components/ui/icons';
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'LinkedIn', href: '/channels/linkedin', icon: Linkedin },
   { name: 'X', href: '/channels/twitter', icon: XIcon },
   { name: 'Instagram', href: '/channels/instagram', icon: Instagram },
+  { name: 'Posting', href: '/posting', icon: Send },
   { name: 'KPIs', href: '/kpis', icon: BarChart3 },
   { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { name: 'Settings', href: '/settings', icon: Settings },
