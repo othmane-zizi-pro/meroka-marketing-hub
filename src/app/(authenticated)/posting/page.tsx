@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink, MessageCircle, Repeat2, Quote, Heart, Link2, BarChart3, Eye } from 'lucide-react';
+import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink, MessageCircle, Repeat2, Quote, Heart, Link2, BarChart3, Eye, Trophy, Medal } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -707,6 +707,121 @@ export default function PostingPage() {
                   })}
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Mini Leaderboard */}
+          <Card className="border-brand-neutral-100">
+            <CardHeader>
+              <CardTitle className="text-brand-navy-900 flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-500" />
+                Leaderboard
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                // Calculate leaderboard from posts for the selected channel
+                const channelPosts = recentPosts.filter(p => p.channel === selectedChannel);
+
+                if (channelPosts.length === 0) {
+                  return (
+                    <p className="text-brand-navy-500 text-center py-4 text-sm">
+                      No posts yet for {currentChannel.name}
+                    </p>
+                  );
+                }
+
+                // Aggregate by author
+                const authorStats: Record<string, {
+                  name: string;
+                  posts: number;
+                  impressions: number;
+                  likes: number;
+                }> = {};
+
+                channelPosts.forEach(post => {
+                  const key = post.author_email;
+                  if (!authorStats[key]) {
+                    authorStats[key] = {
+                      name: post.author_name,
+                      posts: 0,
+                      impressions: 0,
+                      likes: 0,
+                    };
+                  }
+                  authorStats[key].posts += 1;
+
+                  // Add metrics if available
+                  if (post.external_id && postMetrics[post.external_id]) {
+                    const metrics = postMetrics[post.external_id];
+                    authorStats[key].impressions += metrics.impressions || 0;
+                    authorStats[key].likes += metrics.likes || 0;
+                  }
+                });
+
+                // Sort by impressions (or posts if no impressions)
+                const leaderboard = Object.values(authorStats)
+                  .sort((a, b) => {
+                    if (b.impressions !== a.impressions) return b.impressions - a.impressions;
+                    return b.posts - a.posts;
+                  })
+                  .slice(0, 5);
+
+                const getMedalColor = (index: number) => {
+                  if (index === 0) return 'text-yellow-500';
+                  if (index === 1) return 'text-gray-400';
+                  if (index === 2) return 'text-amber-600';
+                  return 'text-brand-navy-400';
+                };
+
+                return (
+                  <div className="space-y-3">
+                    {leaderboard.map((author, index) => (
+                      <div
+                        key={author.name}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded-lg",
+                          index === 0 ? "bg-yellow-50 border border-yellow-200" : "bg-brand-neutral-50"
+                        )}
+                      >
+                        <div className={cn("font-bold text-lg w-6", getMedalColor(index))}>
+                          {index < 3 ? (
+                            <Medal className="h-5 w-5" />
+                          ) : (
+                            <span className="text-sm">{index + 1}</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-brand-navy-800 truncate">
+                            {author.name}
+                          </p>
+                          <div className="flex items-center gap-3 text-xs text-brand-navy-500">
+                            <span>{author.posts} post{author.posts !== 1 ? 's' : ''}</span>
+                            {author.impressions > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                  <Eye className="h-3 w-3" />
+                                  {author.impressions.toLocaleString()}
+                                </span>
+                              </>
+                            )}
+                            {author.likes > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                  <Heart className="h-3 w-3" />
+                                  {author.likes}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>

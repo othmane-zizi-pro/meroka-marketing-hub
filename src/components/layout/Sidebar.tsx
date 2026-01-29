@@ -24,7 +24,7 @@ const navigation = [
   { name: 'Instagram', href: '/channels/instagram', icon: Instagram },
   { name: 'Posting', href: '/posting', icon: Send },
   { name: 'KPIs', href: '/kpis', icon: BarChart3 },
-  { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
+  // { name: 'Leaderboard', href: '/leaderboard', icon: Trophy }, // Hidden for now
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
