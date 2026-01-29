@@ -63,8 +63,8 @@ export async function GET(request: NextRequest) {
     const accessToken = tokenData.access_token;
     const expiresIn = tokenData.expires_in; // seconds
 
-    // Get LinkedIn user profile
-    const profileResponse = await fetch('https://api.linkedin.com/v2/userinfo', {
+    // Get LinkedIn user profile using the /me endpoint
+    const profileResponse = await fetch('https://api.linkedin.com/v2/me', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
       },
@@ -75,8 +75,8 @@ export async function GET(request: NextRequest) {
 
     if (profileResponse.ok) {
       const profileData = await profileResponse.json();
-      linkedinUserId = profileData.sub;
-      linkedinName = profileData.name;
+      linkedinUserId = profileData.id;
+      linkedinName = `${profileData.localizedFirstName || ''} ${profileData.localizedLastName || ''}`.trim() || null;
     }
 
     // Store the token in Supabase

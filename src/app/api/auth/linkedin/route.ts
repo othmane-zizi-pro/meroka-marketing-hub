@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     // Build the authorization URL
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://meroka-marketing-hub.vercel.app'}/api/auth/linkedin/callback`;
-    const scope = 'openid profile email w_member_social';
+    const scope = 'w_member_social';
     const state = Buffer.from(JSON.stringify({
       userId: user.id,
       returnUrl: request.nextUrl.searchParams.get('returnUrl') || '/posting'
