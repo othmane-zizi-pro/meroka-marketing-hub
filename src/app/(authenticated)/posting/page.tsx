@@ -224,6 +224,9 @@ export default function PostingPage() {
       if (selectedChannel === 'linkedin') {
         // LinkedIn posting
         formData.append('content', content.trim());
+        if (mediaFile && mediaFile.type.startsWith('image/')) {
+          formData.append('media', mediaFile);
+        }
 
         const response = await fetch('/api/post/linkedin', {
           method: 'POST',
@@ -239,6 +242,7 @@ export default function PostingPage() {
             postUrl: data.post?.url,
           });
           setContent('');
+          removeMedia();
           fetchRecentPosts();
         } else {
           setResult({
@@ -505,8 +509,8 @@ export default function PostingPage() {
               </div>
               )}
 
-              {/* Media Preview (only for tweets) */}
-              {selectedPostType === 'tweet' && mediaPreview && (
+              {/* Media Preview (for tweets and LinkedIn) */}
+              {(selectedPostType === 'tweet' || selectedChannel === 'linkedin') && mediaPreview && (
                 <div className="relative inline-block">
                   {mediaFile?.type.startsWith('video/') ? (
                     <video
@@ -530,13 +534,13 @@ export default function PostingPage() {
                 </div>
               )}
 
-              {/* Media Upload Button (only for tweets) */}
-              {selectedPostType === 'tweet' && (
+              {/* Media Upload Button (for tweets and LinkedIn) */}
+              {(selectedPostType === 'tweet' || selectedChannel === 'linkedin') && (
               <div className="flex items-center gap-3">
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
+                  accept={selectedChannel === 'linkedin' ? "image/jpeg,image/png,image/gif" : "image/jpeg,image/png,image/gif,image/webp,video/mp4"}
                   onChange={handleFileSelect}
                   className="hidden"
                 />
@@ -547,6 +551,7 @@ export default function PostingPage() {
                   <Image className="h-4 w-4" />
                   Add Image
                 </button>
+                {selectedChannel !== 'linkedin' && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-navy-600 bg-brand-neutral-100 rounded-lg hover:bg-brand-neutral-200 transition-colors"
@@ -554,8 +559,9 @@ export default function PostingPage() {
                   <Film className="h-4 w-4" />
                   Add Video
                 </button>
+                )}
                 <span className="text-xs text-brand-navy-400">
-                  Images: 5MB max | GIFs: 15MB | Videos: 512MB
+                  {selectedChannel === 'linkedin' ? 'Images: 5MB max (JPG, PNG, GIF)' : 'Images: 5MB max | GIFs: 15MB | Videos: 512MB'}
                 </span>
               </div>
               )}

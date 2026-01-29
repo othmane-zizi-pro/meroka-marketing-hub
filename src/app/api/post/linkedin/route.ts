@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const content = formData.get('content') as string;
+    const mediaFile = formData.get('media') as File | null;
 
     if (!content || content.trim().length === 0) {
       return NextResponse.json(
@@ -121,8 +122,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let mediaAsset: string | null = null;
+
+    // Upload image if provided
+    if (mediaFile && mediaFile.type.startsWith('image/')) {
+      try {
+        // Step 1: Initialize the upload
+        const initResponse = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${connection.access_token}`,
+            'Content-Type': 'application/json',
+            'X-Restli-Protocol-Version': '2.0.0',
+            'LinkedIn-Version': '202401',
+          },
+          body: JSON.stringify({
+            initializeUploadRequest: {
+              owner: `urn:li:organization:${organizationId}`,
+            },
+          }),
+        });
+
+        if (!initResponse.ok) {
+          console.error('LinkedIn image init failed:', await initResponse.text());
+        } else {
+          const initData = await initResponse.json();
+          const uploadUrl = initData.value?.uploadUrl;
+          mediaAsset = initData.value?.image;
+
+          if (uploadUrl && mediaAsset) {
+            // Step 2: Upload the image binary
+            const imageBuffer = Buffer.from(await mediaFile.arrayBuffer());
+            const uploadResponse = await fetch(uploadUrl, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${connection.access_token}`,
+                'Content-Type': mediaFile.type,
+              },
+              body: imageBuffer,
+            });
+
+            if (!uploadResponse.ok) {
+              console.error('LinkedIn image upload failed:', uploadResponse.status);
+              mediaAsset = null;
+            }
+          }
+        }
+      } catch (uploadError) {
+        console.error('Error uploading image to LinkedIn:', uploadError);
+      }
+    }
+
     // Create the post using LinkedIn's Posts API (organization posting)
-    const postBody = {
+    const postBody: any = {
       author: `urn:li:organization:${organizationId}`,
       lifecycleState: 'PUBLISHED',
       specificContent: {
@@ -130,7 +182,13 @@ export async function POST(request: NextRequest) {
           shareCommentary: {
             text: content,
           },
-          shareMediaCategory: 'NONE',
+          shareMediaCategory: mediaAsset ? 'IMAGE' : 'NONE',
+          ...(mediaAsset && {
+            media: [{
+              status: 'READY',
+              media: mediaAsset,
+            }],
+          }),
         },
       },
       visibility: {
