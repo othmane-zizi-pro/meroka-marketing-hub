@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { channelStats } from '@/lib/mock-data';
 import { useUser } from '@/hooks/useUser';
-import { Linkedin, Instagram, ArrowRight, TrendingUp, CheckCircle, Clock } from 'lucide-react';
+import { Linkedin, Instagram, ArrowRight, TrendingUp } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 
 const channelIcons = {
@@ -29,8 +29,6 @@ const channelColors = {
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const totalPending = channelStats.reduce((sum, ch) => sum + ch.pendingPosts, 0);
-  const totalApproved = channelStats.reduce((sum, ch) => sum + ch.approvedToday, 0);
   const totalPublished = channelStats.reduce((sum, ch) => sum + ch.publishedThisWeek, 0);
 
   const firstName = user?.name?.split(' ')[0] || 'there';
@@ -45,34 +43,6 @@ export default function DashboardPage() {
       <div className="flex-1 overflow-auto p-6 space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-brand-neutral-100 border-brand-neutral-100">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-brown/10">
-                  <Clock className="h-6 w-6 text-brand-brown" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-brand-navy-900">{totalPending}</p>
-                  <p className="text-sm text-brand-navy-600">Pending Review</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-brand-neutral-100 border-brand-neutral-100">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-brand-navy-900">{totalApproved}</p>
-                  <p className="text-sm text-brand-navy-600">Approved Today</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="bg-brand-neutral-100 border-brand-neutral-100">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -111,14 +81,6 @@ export default function DashboardPage() {
                   <CardContent>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-brand-navy-600">Pending</span>
-                        <span className="font-medium text-brand-navy-900">{stats.pendingPosts}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-brand-navy-600">Approved today</span>
-                        <span className="font-medium text-brand-navy-900">{stats.approvedToday}</span>
-                      </div>
-                      <div className="flex justify-between">
                         <span className="text-brand-navy-600">This week</span>
                         <span className="font-medium text-brand-navy-900">{stats.publishedThisWeek}</span>
                       </div>
@@ -140,33 +102,18 @@ export default function DashboardPage() {
         <div>
           <h2 className="text-lg font-semibold mb-4 text-brand-navy-900">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/channels/linkedin">
+            <Link href="/posting">
               <Card className="cursor-pointer transition-all hover:shadow-md hover:border-brand-brown/50 border-brand-neutral-100">
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-brand-navy-900">Employee Voices</h3>
-                  <p className="text-sm text-brand-navy-600 mt-1">
-                    View and engage with AI-generated posts
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/kpis">
-              <Card className="cursor-pointer transition-all hover:shadow-md hover:border-brand-brown/50 border-brand-neutral-100">
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-brand-navy-900">View KPIs</h3>
-                  <p className="text-sm text-brand-navy-600 mt-1">
-                    Track marketing performance metrics
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/settings">
-              <Card className="cursor-pointer transition-all hover:shadow-md hover:border-brand-brown/50 border-brand-neutral-100">
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-brand-navy-900">Train Your AI Agent</h3>
-                  <p className="text-sm text-brand-navy-600 mt-1">
-                    Add example posts to improve AI suggestions
-                  </p>
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-navy-800 text-white">
+                    <XIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-brand-navy-900">Post on X</h3>
+                    <p className="text-sm text-brand-navy-600 mt-1">
+                      Create and publish posts to X
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </Link>
