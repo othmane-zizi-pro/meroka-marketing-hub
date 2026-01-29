@@ -1,0 +1,284 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Meroka Marketing Hub - AI Post Generation Orchestration
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+
+  SupabaseUrl:
+    Type: String
+    Description: Supabase project URL
+
+  SupabaseServiceKey:
+    Type: String
+    Description: Supabase service role key
+    NoEcho: true
+
+  OpenAIApiKey:
+    Type: String
+    Description: OpenAI API key
+    NoEcho: true
+
+  GrokApiKey:
+    Type: String
+    Description: Grok/xAI API key
+    NoEcho: true
+
+  GeminiApiKey:
+    Type: String
+    Description: Google Gemini API key
+    NoEcho: true
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 300
+    MemorySize: 512
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        SUPABASE_URL: !Ref SupabaseUrl
+        SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+        MEDIA_BUCKET: !Ref MediaBucket
+    Layers:
+      - !Ref DependenciesLayer
+
+Resources:
+  # ============================================
+  # S3 BUCKET FOR MEDIA
+  # ============================================
+
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub meroka-post-media-${Environment}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT]
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+
+  # ============================================
+  # LAMBDA LAYER (shared dependencies)
+  # ============================================
+
+  DependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub meroka-dependencies-${Environment}
+      Description: Shared Python dependencies
+      ContentUri: layers/dependencies/
+      CompatibleRuntimes:
+        - python3.12
+    Metadata:
+      BuildMethod: python3.12
+
+  # ============================================
+  # LAMBDA FUNCTIONS
+  # ============================================
+
+  # Main orchestrator - triggered by EventBridge
+  CampaignOrchestratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub meroka-campaign-orchestrator-${Environment}
+      CodeUri: lambdas/campaign-orchestrator/
+      Handler: handler.lambda_handler
+      Description: Main entry point for campaign post generation
+      Timeout: 900
+      MemorySize: 1024
+      Environment:
+        Variables:
+          COMPLEX_WORKFLOW_ARN: !Ref ComplexWorkflowStateMachine
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - states:StartExecution
+              Resource: !Ref ComplexWorkflowStateMachine
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource:
+                - !GetAtt ContextFetcherFunction.Arn
+                - !GetAtt LLMGeminiFunction.Arn
+                - !GetAtt LLMOpenAIFunction.Arn
+                - !GetAtt LLMGrokFunction.Arn
+                - !GetAtt LLMAggregatorFunction.Arn
+                - !GetAtt MemeRendererFunction.Arn
+
+  # Context fetcher - gets employee samples, campaign config
+  ContextFetcherFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub meroka-context-fetcher-${Environment}
+      CodeUri: lambdas/context-fetcher/
+      Handler: handler.lambda_handler
+      Description: Fetches context for post generation
+
+  # LLM Functions
+  LLMGeminiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub meroka-llm-gemini-${Environment}
+      CodeUri: lambdas/llm-gemini/
+      Handler: handler.lambda_handler
+      Description: Google Gemini API wrapper
+      Timeout: 120
+      Environment:
+        Variables:
+          GEMINI_API_KEY: !Ref GeminiApiKey
+
+  LLMOpenAIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub meroka-llm-openai-${Environment}
+      CodeUri: lambdas/llm-openai/
+      Handler: handler.lambda_handler
+      Description: OpenAI GPT-4 API wrapper
+      Timeout: 120
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OpenAIApiKey
+
+  LLMGrokFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub meroka-llm-grok-${Environment}
+      CodeUri: lambdas/llm-grok/
+      Handler: handler.lambda_handler
+      Description: Grok/xAI API wrapper
+      Timeout: 120
+      Environment:
+        Variables:
+          GROK_API_KEY: !Ref GrokApiKey
+
+  LLMAggregatorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub meroka-llm-aggregator-${Environment}
+      CodeUri: lambdas/llm-aggregator/
+      Handler: handler.lambda_handler
+      Description: Aggregates and selects best LLM output
+      Timeout: 120
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OpenAIApiKey
+
+  MemeRendererFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub meroka-meme-renderer-${Environment}
+      CodeUri: lambdas/meme-renderer/
+      Handler: handler.lambda_handler
+      Description: Deterministic meme/image rendering
+      Timeout: 60
+      MemorySize: 1024
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref MediaBucket
+
+  # ============================================
+  # STEP FUNCTIONS - Complex Workflow
+  # ============================================
+
+  ComplexWorkflowStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub meroka-complex-workflow-${Environment}
+      DefinitionUri: step-functions/complex-workflow.asl.json
+      DefinitionSubstitutions:
+        ContextFetcherArn: !GetAtt ContextFetcherFunction.Arn
+        LLMGeminiArn: !GetAtt LLMGeminiFunction.Arn
+        LLMOpenAIArn: !GetAtt LLMOpenAIFunction.Arn
+        LLMGrokArn: !GetAtt LLMGrokFunction.Arn
+        LLMAggregatorArn: !GetAtt LLMAggregatorFunction.Arn
+        MemeRendererArn: !GetAtt MemeRendererFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ContextFetcherFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref LLMGeminiFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref LLMOpenAIFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref LLMGrokFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref LLMAggregatorFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref MemeRendererFunction
+
+  # ============================================
+  # EVENTBRIDGE - Scheduler Role
+  # ============================================
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub meroka-scheduler-role-${Environment}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeLambda
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt CampaignOrchestratorFunction.Arn
+
+  # ============================================
+  # CLOUDWATCH - Log Groups
+  # ============================================
+
+  OrchestratorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/meroka-campaign-orchestrator-${Environment}
+      RetentionInDays: 30
+
+  StepFunctionsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/states/meroka-complex-workflow-${Environment}
+      RetentionInDays: 30
+
+Outputs:
+  CampaignOrchestratorArn:
+    Description: Campaign Orchestrator Lambda ARN
+    Value: !GetAtt CampaignOrchestratorFunction.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-OrchestratorArn
+
+  ComplexWorkflowArn:
+    Description: Complex Workflow State Machine ARN
+    Value: !Ref ComplexWorkflowStateMachine
+    Export:
+      Name: !Sub ${AWS::StackName}-ComplexWorkflowArn
+
+  MediaBucketName:
+    Description: S3 bucket for generated media
+    Value: !Ref MediaBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-MediaBucket
+
+  SchedulerRoleArn:
+    Description: IAM Role ARN for EventBridge Scheduler
+    Value: !GetAtt SchedulerRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-SchedulerRoleArn

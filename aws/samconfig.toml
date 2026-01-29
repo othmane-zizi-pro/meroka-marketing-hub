@@ -1,0 +1,39 @@
+# SAM CLI Configuration
+# Run: sam deploy --guided to update these values
+
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "meroka-orchestration"
+resolve_s3 = true
+s3_prefix = "meroka-orchestration"
+region = "us-west-2"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+
+[dev.deploy.parameters]
+stack_name = "meroka-orchestration-dev"
+resolve_s3 = true
+s3_prefix = "meroka-orchestration-dev"
+region = "us-west-2"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+parameter_overrides = "Environment=dev"
+
+[staging.deploy.parameters]
+stack_name = "meroka-orchestration-staging"
+resolve_s3 = true
+s3_prefix = "meroka-orchestration-staging"
+region = "us-west-2"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+parameter_overrides = "Environment=staging"
+
+[prod.deploy.parameters]
+stack_name = "meroka-orchestration-prod"
+resolve_s3 = true
+s3_prefix = "meroka-orchestration-prod"
+region = "us-west-2"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+parameter_overrides = "Environment=prod"

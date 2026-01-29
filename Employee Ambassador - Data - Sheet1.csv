@@ -1,0 +1,209 @@
+Descriptive data to curate personal content ,,,,,,,Existing perosnal artifacts,,,
+Employee,Generation,Email,LinkedIn,Tone you prefer,Role at Meroka,Origin story (Why you are at Meroka),Slack messages that represent your communication style,LinkedIn Posts,LinkedIn Posts,LinkedIn Posts
+Clara Caden,Gen Z,clara.caden@meroka.com,https://www.linkedin.com/in/clara-caden/,"High agency, clever and casual","Intern, corporate development",Desire to work on high impact mission and opportunity to tap into my entrepreneurial / creative spirit attracted me to Meroka. High desire to make meaningful change,"spoke with the cto, and i think this could be interesting to leverage for metric tracking and SEO optimization. look it over and i can maybe schedule a call with him (unless we build it ourselves)
+
+if anything, if culture gets us eyeballs, might be easier to introduce a new experiment, or reboot doc in two weeks time
+
+","IT'S TIME TO BUILD THE PIPELINE 🛢️ 
+
+We’re taking 100 of Montreal’s best student builders to Toronto Tech week in May 🚀. These aren't just students; they're the people building Montreal’s economy as we know it.
+
+It’s called Project Atlas.
+
+We’re opening a few select slots for partners to get involved.
+
+If you’re in the VC, incubator, or founder space, this is NOT an opportunity worth missing.
+
+Reach out to get involved.","Canada deserves its own student-led innovation hub, so McGill Ventures is building it.
+
+Say hi to the Student Venture Network (SVN) 🚀
+
+A Slack community connecting Canada’s most ambitious university clubs to collaborate, scale, share resources, and level up together.
+
+Already in: RCVC (UofT), IVCC (Western), ENGCOMM (Concordia), Polyentrepreneuriat (Polytechnique MTL), PolyFinances (Polytechnique MTL).
+Next up: You?
+
+If you’re a club or student builder based in Canada building cool things and want to join a national network of student innovators, DM me here or send a message to clara.caden@mail.mcgill.ca ! ",N/A
+Othmane Zizi,,othmane.zizi@meroka.com,https://www.linkedin.com/in/othmanezizi/,,"Product Manager, AI engineer",,"Hey guys, I want to pay for the NotebookLM Enterprise API. I was told we already have an org created for Meroka on GCP. I could create a new billing account for that but perhaps we'd prefer to centralize billing under one billing account? What do you think?
+
+Hello hello! Those are great thoughts. It's possible but it's a bigger task. There are tools like Convictional that connect to your internal sources of data like Slack channels, meeting transcripts, and files to provide an LLM that has all of that in its context for use by internal team members. If we go through with this, I'd have to have a case that we can do better than them in a way that's critical. Otherwise, we could just pay for Convictional.","AI is moving so fast, but sometimes, brushing up on fundamentals can go a long way.
+
+Just built an end-to-end pipeline on Microsoft Fabric from ingestion to dashboarding, leveraging Apache Spark. ✨
+
+Past a certain scale, companies with terabytes of data must adapt their stack to run their analytics. They’d require a lakehouse and warehouse to process and centralize their massive datasets, which would come from many sources, like multiple ERPs across geographies.
+
+So, they really need tech that’s adapted to the scale of their data. With Apache Spark, a Spark engine handles the data in a distributed way with efficient CPU parallelism. Since Spark is a JVM-based system, the pyspark library interfaces with it through an API so you can still engineer your ETL pipelines in Python notebooks. You do that as seamlessly on Fabric as you would on Jupyter.
+
+Cloud solutions like Microsoft Fabric manage the Spark engine under the hood. They provide many great features like scheduling runs of your ETL notebooks so you can ingest and process new data automatically at a frequency you set. The whole process is much more seamless than the keywords may suggest.","Excited to share my latest open-source project: 𝐅𝐮𝐥𝐜𝐫𝐮𝐦 𝐀𝐈, an autonomous agent for data-driven procurement strategy, built on the Databricks platform. 📈
+
+𝐓𝐡𝐞 𝐏𝐫𝐨𝐛𝐥𝐞𝐦
+
+Standard LLMs are unreliable for high-stakes business decisions; they can't access the live, proprietary data needed to make verifiable recommendations. For a company making a multi-million dollar decision on raw materials, a probabilistic guess isn't good enough.
+
+𝐌𝐲 𝐒𝐨𝐥𝐮𝐭𝐢𝐨𝐧
+
+Fulcrum AI is a true agentic system where the LLM acts as an orchestrator, connecting its reasoning capabilities to reliable, high-performance computation. When asked, ""Should we buy copper now or wait?"", the agent autonomously designs and executes a data analysis plan using a suite of custom tools:
+
+- 𝐋𝐚𝐤𝐞𝐡𝐨𝐮𝐬𝐞 𝐀𝐧𝐚𝐥𝐲𝐬𝐢𝐬 🌊: A tool queries a 5-year historical dataset from a 𝐃𝐚𝐭𝐚𝐛𝐫𝐢𝐜𝐤𝐬 𝐃𝐞𝐥𝐭𝐚 𝐋𝐚𝐤𝐞 table using 𝐒𝐩𝐚𝐫𝐤 𝐒𝐐𝐋. It instantly calculates long-term averages, volatility, and price ranges, leveraging the power of the managed Spark engine for large-scale data processing.
+- 𝐋𝐢𝐯𝐞 𝐌𝐚𝐫𝐤𝐞𝐭 𝐃𝐚𝐭𝐚 💹: Another tool makes a live API call to the 𝐘𝐚𝐡𝐨𝐨 𝐅𝐢𝐧𝐚𝐧𝐜𝐞 𝐀𝐏𝐈 to fetch the actual, up-to-the-minute futures price and trading volume, ensuring the analysis is based on current market conditions.
+- 𝐂𝐨𝐬𝐭 𝐃𝐫𝐢𝐯𝐞𝐫 𝐀𝐧𝐚𝐥𝐲𝐬𝐢𝐬 ⚡: A third tool queries the 𝐔.𝐒. 𝐄𝐈𝐀 𝐀𝐏𝐈 to analyze industrial energy price trends—a crucial cost driver in copper production that provides essential market context.
+
+𝐇𝐨𝐰 𝐈𝐭 𝐖𝐨𝐫𝐤𝐬
+
+The agent's logic is built with 𝐋𝐚𝐧𝐠𝐆𝐫𝐚𝐩𝐡, operating as a state machine. The LLM (OpenAI’s open-source model 𝐆𝐏𝐓-𝐎𝐒𝐒-𝟏𝟐𝟎𝐁 served via the high-speed Groq 𝐀𝐏𝐈) deconstructs the business query, determines which tools to call, calls them, and adds the findings to its state. This cycle repeats until it determines it has gathered enough information. Deterministic code gets the hard facts. LLMs reason with them. The best of both worlds in a single, cohesive agent.
+
+The crucial difference is that the final recommendation is a synthesis grounded in 𝐡𝐚𝐫𝐝, 𝐚𝐮𝐝𝐢𝐭𝐚𝐛𝐥𝐞 𝐟𝐚𝐜𝐭𝐬 from the Lakehouse (which can serve proprietary, internal data) and live APIs, rather than making black-box guesses or citing sources haphazardly. The final report explicitly details which tools were called and what data was retrieved from which source, making the entire reasoning process transparent and trustworthy.
+
+You can explore the full project, including the complete code and a demo of the agent's tool-use in action, on my GitHub!","𝗧𝗵𝗲 𝗴𝗮𝗽 𝗯𝗲𝘁𝘄𝗲𝗲𝗻 𝗶𝗱𝗲𝗮 𝗮𝗻𝗱 𝗶𝗺𝗽𝗹𝗲𝗺𝗲𝗻𝘁𝗮𝘁𝗶𝗼𝗻 𝗵𝗮𝘀 𝗻𝗲𝘃𝗲𝗿 𝗯𝗲𝗲𝗻 𝘁𝗵𝗶𝘀 𝘁𝗵𝗶𝗻.
+
+💡 Unveiling 𝗖𝗮𝘀𝗵𝗙𝗹𝗼𝘄-𝗠𝗧𝗟: Your AI-Powered Guide to Airbnb Investments in Montreal
+
+I'm thrilled to introduce my latest open-source project, CashFlow-MTL, a powerful 𝗶𝗻𝘃𝗲𝘀𝘁𝗺𝗲𝗻𝘁 𝘁𝗼𝗼𝗹 designed to help you identify and acquire the most profitable 𝗔𝗶𝗿𝗯𝗻𝗯 𝗽𝗿𝗼𝗽𝗲𝗿𝘁𝗶𝗲𝘀 𝗶𝗻 𝗠𝗼𝗻𝘁𝗿𝗲𝗮𝗹. Maximize your returns with data-driven insights and a streamlined process.
+
+🚀  𝗪𝗵𝗮𝘁 𝗖𝗮𝘀𝗵𝗙𝗹𝗼𝘄-𝗠𝗧𝗟 𝗢𝗳𝗳𝗲𝗿𝘀:
+
+- 𝗣𝗿𝗼𝗽𝗲𝗿𝘁𝘆 𝗦𝗼𝘂𝗿𝗰𝗶𝗻𝗴: Load properties directly from Centris or explore a built-in sample dataset.
+- 𝗙𝗶𝗻𝗮𝗻𝗰𝗶𝗮𝗹 𝗣𝗿𝗼𝗷𝗲𝗰𝘁𝗶𝗼𝗻𝘀: Accurately compute down payments and monthly mortgage costs.
+- 𝗥𝗲𝘃𝗲𝗻𝘂𝗲 𝗙𝗼𝗿𝗲𝗰𝗮𝘀𝘁𝗶𝗻𝗴: Leverage an advanced Machine Learning model, trained on over 8,500 Montreal listings from Inside Airbnb, to forecast monthly Airbnb revenue.
+- 𝗘𝘅𝗽𝗲𝗻𝘀𝗲 𝗠𝗮𝗻𝗮𝗴𝗲𝗺𝗲𝗻𝘁: Calculate comprehensive operating expenses, including taxes, maintenance, and management fees.
+- 𝗖𝗮𝘀𝗵 𝗙𝗹𝗼𝘄 𝗔𝗻𝗮𝗹𝘆𝘀𝗶𝘀: Clearly display projected monthly cash flow for each property.
+- 𝗣𝗲𝗿𝗳𝗼𝗿𝗺𝗮𝗻𝗰𝗲 𝗥𝗮𝗻𝗸𝗶𝗻𝗴: Rank listings based on key metrics like cash-on-cash return and cap rate.
+- 𝗕𝘂𝘀𝗶𝗻𝗲𝘀𝘀 𝗣𝗹𝗮𝗻 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗶𝗼𝗻: Generate a ready-to-present business plan for your bank prior to purchase.
+- 𝗜𝗻𝘁𝘂𝗶𝘁𝗶𝘃𝗲 𝗗𝗲𝘀𝗶𝗴𝗻: A clean, user-friendly interface demystifies the complex math and processes involved in short-term rental investing.
+
+🧠 𝗥𝗲𝗳𝗹𝗲𝗰𝘁𝗶𝗼𝗻𝘀 𝗼𝗻 𝗔𝗜 𝗮𝗻𝗱 𝘁𝗵𝗲 𝗗𝗲𝘃𝗲𝗹𝗼𝗽𝗺𝗲𝗻𝘁 𝗣𝗿𝗼𝗰𝗲𝘀𝘀:
+
+The year 2025, dubbed ""𝘁𝗵𝗲 𝘆𝗲𝗮𝗿 𝗼𝗳 𝗮𝗴𝗲𝗻𝘁𝘀"" by Silicon Valley investors, has certainly lived up to its name. Ten months in, my experience with 𝗖𝗟𝗜-𝗯𝗮𝘀𝗲𝗱 𝗮𝗴𝗲𝗻𝘁𝗶𝗰 𝗰𝗼𝗱𝗲-𝗴𝗲𝗻 𝘁𝗼𝗼𝗹𝘀 like 𝗖𝗹𝗮𝘂𝗱𝗲 𝗖𝗼𝗱𝗲 has been 𝗻𝗼𝘁𝗵𝗶𝗻𝗴 𝘀𝗵𝗼𝗿𝘁 𝗼𝗳 𝘀𝗽𝗲𝗰𝘁𝗮𝗰𝘂𝗹𝗮𝗿. What once required 𝗮 𝘁𝗲𝗮𝗺 𝗼𝗳 𝘀𝗲𝗮𝘀𝗼𝗻𝗲𝗱 𝗲𝗻𝗴𝗶𝗻𝗲𝗲𝗿𝘀 𝗮𝗻𝗱 𝗮 𝗺𝗼𝗻𝘁𝗵 𝗼𝗳 𝘄𝗼𝗿𝗸, I did in 𝗷𝘂𝘀𝘁 𝘀𝗶𝘅 𝗵𝗼𝘂𝗿𝘀.
+
+𝗧𝗵𝗲 𝗳𝘂𝘁𝘂𝗿𝗲 𝗯𝗲𝗹𝗼𝗻𝗴𝘀 𝘁𝗼 𝘁𝗵𝗼𝘀𝗲 𝘄𝗵𝗼 𝘁𝗵𝗶𝗻𝗸 𝗰𝗿𝗶𝘁𝗶𝗰𝗮𝗹𝗹𝘆, 𝘀𝘁𝗿𝗮𝘁𝗲𝗴𝗶𝘇𝗲, 𝗵𝗮𝗿𝗻𝗲𝘀𝘀 𝗔𝗜, 𝗮𝗻𝗱 𝗶𝘁𝗲𝗿𝗮𝘁𝗲 𝗾𝘂𝗶𝗰𝗸𝗹𝘆. 𝗔𝘀 𝘀𝗼𝗳𝘁𝘄𝗮𝗿𝗲 𝗱𝗲𝘃𝗲𝗹𝗼𝗽𝗺𝗲𝗻𝘁 𝗯𝗲𝗰𝗼𝗺𝗲𝘀 𝗶𝗻𝗰𝗿𝗲𝗮𝘀𝗶𝗻𝗴𝗹𝘆 𝗰𝗼𝗺𝗺𝗼𝗱𝗶𝘁𝗶𝘇𝗲𝗱, the importance of 𝗱𝗶𝘀𝘁𝗿𝗶𝗯𝘂𝘁𝗶𝗼𝗻, 𝗻𝗲𝘁𝘄𝗼𝗿𝗸 𝗲𝗳𝗳𝗲𝗰𝘁𝘀, 𝗮𝗻𝗱 𝗯𝗿𝗮𝗻𝗱 𝗲𝗾𝘂𝗶𝘁𝘆 (think OpenAI vs. Grok) will only grow.
+
+The 𝗝𝗲𝘃𝗼𝗻𝘀 𝗣𝗮𝗿𝗮𝗱𝗼𝘅 teaches us that as productivity costs decrease, market size expands due to the emergence of 𝗻𝗲𝘄𝗹𝘆 𝘃𝗶𝗮𝗯𝗹𝗲 𝗯𝘂𝘀𝗶𝗻𝗲𝘀𝘀 𝗺𝗼𝗱𝗲𝗹𝘀. I believe this to be true, and I’m excited to see how it unfolds.
+
+Curious to see it in action? 𝗧𝗿𝘆 𝗶𝘁 𝗼𝘂𝘁 𝗮𝗻𝗱 𝗹𝗲𝘁 𝗺𝗲 𝗸𝗻𝗼𝘄 𝘄𝗵𝗮𝘁 𝘆𝗼𝘂 𝘁𝗵𝗶𝗻𝗸! 👇"
+Alexandra Kiekens,,alexandra.kiekensarana@meroka.com,https://www.linkedin.com/in/alexandra-kiekens-60999813a/,,Chief of Staff,,"Hi all, I sent over a meeting related to data gathering for Indy-practices for South Carolina. If you are interested in understanding on how that data is going to be gathered, please join me!
+
+The branding concept is to frame the message as the “movie” about saving independent clinics (publish in the IndeDocs Catalog), supported by a fun promotional video that explains the ""collective balance cheat or allocation"" idea. While it’s a bit ambitious and unconventional, it could be worth testing","Thank you Eric Bricker, MD for this great shoutout!
+
+I’m excited to be working on RHC certification for a rural OB/GYN clinic in West Virginia, a step that not only expands access to care for underserved communities but could also increase the clinic’s profitability by $300K per year.
+
+At Meroka, we don’t take over practices, we help them thrive independently. Through operational support, ownership-focused structures, and smart transitions, we give clinics the tools to grow without giving up control.","Exciting to see Meroka highlighted by Better Tomorrow Ventures as part of the next wave of innovation at the intersection of Fintech and AI.
+
+BTV describes Meroka as “a compelling alternative to private equity” - helping independently owned health practices transition into shared-ownership models that combine the economic advantages of a centralized system with the empathy and community focus of local independent care.
+
+We’re proud to be building a model that rewards healthcare employees with ownership, creates healthier practice economics, and sets the foundation for long-term sustainability in community medicine.
+
+A huge thank you to the BTV team for recognizing our work and for continuing to push the conversation forward!","At Meroka, we believe in more than the traditional PE or VC playbook. 
+
+We’re building something different: an Ownership model that puts power in the hands of the people actually doing the work.👩‍⚕️ By aligning incentives and fostering real accountability, we’re not just growing a business—we’re growing leaders. 
+
+Capital is fuel. 💰
+Code is infrastructure. 💻
+But commitment—that’s what makes it sustainable. 🤝 "
+Bonnie Rwemalika,,bonniesylvie.rwemalika@meroka.com,https://www.linkedin.com/in/bonnie-sylvie-rwemalika/,,"Project Manager, Operations",,"Welcome to POD B – Experience & Added Value for Independent PracticesHi everyone! @channel Following yesterday’s kickoff meeting, I’m excited to officially launch POD B, focused on exploring and building the added value we can bring to independent practices within the collective.This quarter, POD B will work on the Enterprise Value Product. I’ve shared a summary outlining the problem space, goals, and hypotheses we’ll be testing—please take a moment to review it and react or comment directly with questions or thoughts.",N/A,N/A,N/A
+Antoine Bertrand,,antoine.bertrand@meroka.com,https://www.linkedin.com/in/antoinebertrand01/,,"Finance, Corporate Development",,"LinkedIn ads launched for approval. Had to remove the yoga pics and like quotes as they can get us in trouble with advertising laws and like image right. Didn't have time to check today, if fine, can always add them tomorrow. Since 24-48 hours for approval, might only start tomorrow
+
+You can see their pain points and upload your pain points. There's a feature to ping/connect a practice, that way you can connect with local practices with same pain points with same insurer for example, or you can help solve a pain point for another practice in an area, or across the US.Let's chat today.","🚀 Exciting news! We’ve raised our seed round!
+
+Proud to announce Meroka’s $6M seed round, backed by Better Tomorrow Ventures, Slow Ventures, and 8VC.
+
+I had the privilege of working directly with Alex on this raise, from developing the business model to shaping the story for the partners who now back our mission. It’s been a crash course in fundraising and an incredible learning experience. Grateful for Alex’s mentorship and leadership throughout the process.
+
+Meroka exists to keep physicians independent and to restore humanity in healthcare. With this raise, we’re doubling down on that vision, building a future where independent care is the way forward for both providers and patients.
+
+Grateful to our team, investors, and physician partners who trust us on this journey. Onwards we go. ","Last Monday, TEDxLondonBusinessSchool 2025 came to life — the result of six months of hard work and collaboration across an incredible team.
+
+It was an absolute pleasure to be part of the Speaker Committee this year — a team filled with heart, hustle, and endless curiosity. I had the opportunity to work closely with incredible speakers: Sarah Hart who delivered a stimulating talk on the beautiful connections between mathematics and literature, and Heejung Chung who delivered an energetic and talk on why we think remote workers are slackers, and what this says about our work culture. 
+
+Huge thanks to our co-chairs Kelly Wilson, MBA and Adelaide Young, and to our Speaker Committee Lead Ekanjali Dhillon, whose leadership grounded and guided us throughout.
+
+And of course, none of this would’ve been possible without our licensees, Audrey Mandela and Jeff Skinner — thank you for always having our backs.
+
+Can’t wait for the talks to be published and shared with the world. ","Thrilled and proud to share the incredible journey of my dear friend, Zeitha Biney, as she transitions from consultant to entrepreneur! A few months ago, Zeitha took the bold step of leaving her consulting career to pursue her passions, and today, she’s the founder and CEO of MESH, a digital marketing agency in Montreal that bridges the gap between consumers and brands.
+
+Zeitha, your positivity, creativity, and dedication have always been an inspiration. I couldn’t be happier for you and can’t wait to see all the amazing things you’ll accomplish."
+Alex Barrett,,alex@meroka.com,https://www.linkedin.com/in/alexbarrettmeroka/,,"CEO, Founder",,"We've circled a lot around what we're doing here, and I think the simplest way to put it is ""what if Indedocs had a balance sheet?""Indedocs exists to provide value-add services to its members, those services include GPOs, RCM stuff, lobbying, etc. But what if it also had a balance sheet? That would mean that as a member of Indedocs you could unlock capital from a totally different source than you've ever imagined. Ie you can unlock capital ""inside' the collective, rather than selling ""outside"" of it.
+
+I recognize this all feels some mixture of exciting (hopefully) and messy, but let's embrace that for 2 more days. Everytime you feel confused, pause and smile  this is the nature of this step of the process. I promise we will make sense of all this before the weekend, and everyone will enter the weekend with clarity on their work, their objectives, and be excited about the gravity and importance of those things, so that on monday we can hit the ground BUILDING!","The real power move when hiring or interviewing for a role is to offer BAD references. The hiring process is all about short-circuiting the trust process, and the best way I can think of to build trust is to speak to people that might not like me very much (people i've let go, founders i've passed on, boards i served on that were dysfunctional, etc). 
+
+The reference call with the ex-manager (friend?) that tells me how great you are is of very limited value. Sure there are techniques to extract knowledge there, but I'd much rather speak to someone that you didn't see eye-to-eye with or that saw you at a low. 
+
+I hate talking about my CPA since it was over 10 years ago and (mostly) a waste of time. But to answer Mark Cuban's question here about why no healthcare practices use accrual accounting? 
+
+Exhibit 1 is that his post has 500 replies and counting and almost every single reply gets accrual accounting principles totally wrong. Nobody understands it or knows wtf it means.","I hate talking about my CPA since it was over 10 years ago and (mostly) a waste of time. But to answer Mark Cuban's question here about why no healthcare practices use accrual accounting? 
+
+Exhibit 1 is that his post has 500 replies and counting and almost every single reply gets accrual accounting principles totally wrong. Nobody understands it or knows wtf it means.","Another day, another study confirming what many of us in healthcare already know: when private equity takes over physician practices, patient care suffers, clinician morale plummets, and turnover skyrockets.
+
+The latest research featured in FierceHealthcare highlights how physician turnover jumps significantly after PE acquisition. The reason? Short-term financial gains are prioritized over long-term sustainability, leading to cost-cutting measures, unrealistic productivity demands, and a loss of autonomy for clinicians. This creates a cycle of burnout, disengagement, and ultimately, an exodus of skilled professionals from these practices.
+
+At Meroka, we are on a mission to protect independent physician practices from the pitfalls of consolidation. We believe in long-term support and that doctors—not investors—should be in charge of patient care. By providing support, infrastructure, and an ownership model that values clinicians, we’re building a future where private practice thrives, not just survives.
+
+Physicians deserve better. Patients deserve better. Healthcare should be led by those who practice it, not those who profit from it."
+Félix Gagné,I'm born in 1999,felix.gagne@meroka.com,https://www.linkedin.com/in/coach-fil/,"Empathetic, rational and concise",Product / Project manager,"Founded a wellness start-up before joining Meroka, I'm conviced you can create a lot of impact if you apply tech into healthcare.","With so much on next week (Grammy's, IndeDocs, Superbowl), maybe we intentionally dedicate the week next week on Cultural momentum instead of the experiment? Would give us clear focus, some interconnection with Pod B and allow Doc to breathe a bit.I suggest we discuss this as a team tomorrow. Think about it and we'll make the decision tomorrow @ 10
+
+Goal by tomorrow -> Be ready to ship our first CTA experimentAt the end of the meeting, we should have a clear idea on who is going to work on what so we can ship our 1st experiment ASAP Keep in mind that the system is highly imperfect, but the best way to learn is by moving forward & learn as we go. If you have ideas & feedback, please share!","En cette journée de la santé mentale, j'aimerais faire un rappel bienveillant du haut de mes 26 ans:
+Ne soyons pas trop durs envers nous-même.
+
+Beaucoup de choses restent incomprises par rapport à la santé mentale et chaque personne est différente. Alors c'est tout à fait normal de vivre des difficultés et de ne pas savoir comment s'en sortir.
+
+Par contre, que ce soit à cause de la pression des autres, des réseaux sociaux ou simplement de la culpabilité, la pire chose à faire dans des moments difficiles et de se sentir coupable.
+
+
+Quand on feel pas, c'est facile de se sentir coupable:
+- Coupable de ne pas être capable de bien gérer ses émotions.
+- Coupable de ne pas être toujours de bonne humeur au travail.
+- Coupable de ne pas être mentalement présent dans une discussion.
+- Coupable d'avoir besoin d'une journée off parce que ça feel pas.
+
+
+Quand on feel pas, on regarde le monde autour de nous et on ne peut pas comprendre que tout aille aussi bien...
+
+Et pourtant, ça finit toujours par passer.
+
+Ma mère me disait toujours:
+La vie fait bien les choses. Tu vas comprendre plus tard.
+
+Alors si on sait qu'on va s'en sortir demain, à quoi ça sert d'être dur envers nous-même aujourd'hui?
+
+Soyons doux, pas durs.
+
+Notre ""nous"" de demain nous en remerciera.
+
+Bonne journée de la santé mentale 💙","La base entrepreneuriale HEC Montréal a été une formidable école d'entrepreneuriat pour moi avec Ludo App. Si vous avez un projet en tête, je vous conseille fortement de considérer La base pour vous accompagner!
+
+Les candidatures sont ouvertes jusqu'à demain! Pour tout savoir",N/A
+Jean Vianney,,jeanvianney.cordeiro@meroka.com,https://www.linkedin.com/in/jvcordeiro/,,CFO,,"Hey folks! Attached link to our Meroka Doc Comms Plan Launch document. It's far from perfect and is actually missing builds on some of the areas each of the group is looking to test distribution (we can update that Monday). But wanted to share the latest so we can tee things up for launch!
+
+I've added you as an admin on our website. I think I need to walk you through some stuff. I also don't want to delete everything so will probably duplicate our current structure/pages and then streamline for next week before go-live","Something worth shouting about 🎉
+
+The team at Chichester Festival Theatre continues to do extraordinary work, with six productions either in the West End or touring across the UK ✨
+
+It is inspiring to see the creativity, ambition and craftsmanship from everyone at CFT reaching audiences in London, Chichester and nationwide.
+
+If you have not already, check out the brilliant work the team is delivering across these productions and beyond 🎭👏
+
+At Meroka, restoring humanity in healthcare starts with how we treat each other. That means making time to come together in person, to laugh, to share ideas, and to play.
+
+From Montreal to New York to London, our recent offsites have reminded us that connection fuels creativity, trust, and joy. This is the energy we bring to every practice we partner with.
+","After 3 wonderful years, I am retiring from the Board at Chichester Festival Theatre 🎭
+
+I have loved working with a smart, kind, and deeply committed Board, alongside an Executive and Management team who genuinely care about getting things right, even when it is not easy.
+
+But the thing I will miss most is the Youth Advisory Board ✨
+
+The YAB brought energy, challenge and optimism. I learned constantly from their honesty, their ambition, and the way they think about culture, access, and a greener tomorrow. If you ever want a proper reality check, spend time with brilliant young people who are not remotely impressed by titles 😅
+
+Huge thank you to my brilliant YAB Co-Chair, Hugh Summers, for being such a thoughtful and steady partner through it all 🤎🙏🏽
+
+I am proud of where CFT is heading. The launch of the artist development programme shaped by young voices 🌱, the appointment of Justin Audibert, and the opening of The Nest 🪺, all feel like the organisation backing its future with real intent.
+
+I am leaving grateful, slightly emotional, and very confident about what comes next 🤎
+
+Wishing everyone at CFT a strong finish to 2025 and an even better 2026. I will be in the audience, cheering loudly 👏🏽","Meroka raises $6M to restore humanity in healthcare 🎉 Featured today in Forbes 
+
+Healthcare should be about people ❤️ Yet too often independent physicians are weighed down by paperwork, the burden of admin, and a wave of corporate consolidation. Meroka exists to bring humanity back into healthcare by giving care teams easy-to-use technology and empowering them through employee ownership. This allows them to focus on their patients while also sharing in the benefits of the success they help create. Together with our team and partners we are building a system where people come first."
+Junjian Li,,junjian.li@meroka.com,https://www.linkedin.com/in/junjian-li-6489ab54/,,Software engineer,,"hey team, I did not feel well and barely sleep last night, I will take a rest this morning, and I will try to how up on group b meeting show some progress I made last Friday
+
+we may have a chat tomorrow - regarding to all experiments -> as it may on vercel+supabase, may in AWS,  how do we do infra management + code review -> due to the fact,  ai coding may involve a lot in the experiment's how to we measure the data security + code quality",N/A,N/A,N/A
+Nigel Albert,,nigel.albert@meroka.com,N/A,,Software engineer,,"Huh, there's something in that last video that's so obvious in retrospect but had not really occurred to me so far.If you have a tool like Sentry (a tool that just quietly reports errors that users encounter in their browser. Traditionally these go into a webpanel that devs never occasionally review), then you could set up an AI Agent that automatically fixes bugs as they're ""found"".And then there's a natural backend version of this too -- an AI agent that watches your server logs and acts whenever it sees new ERROR / CRITICAL / WARNING messages.
+
+Since Othmane and myself are working on letting Doc generate videos, my thought is that one of us could literally speak / paraphrase these quotes into Doc, and then share the resulting generated video which is in a sort of ""fake iMessage"" format with voiceovers.[4:18 PM]That said -- I think the video generation is kind of offline now, I think Othmane was working on this before he left for classes, and looks like the relevant page is inaccessible at this moment. I'm poking around and seeing if there's anything I can get done before the EoD though",N/A,N/A,N/A

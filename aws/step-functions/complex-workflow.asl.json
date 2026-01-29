@@ -1,0 +1,283 @@
+{
+  "Comment": "Complex post generation workflow with LLM council, aggregation, and media rendering",
+  "StartAt": "FetchContext",
+  "States": {
+    "FetchContext": {
+      "Type": "Task",
+      "Resource": "${ContextFetcherArn}",
+      "Parameters": {
+        "campaign_id.$": "$.campaign_id",
+        "employee_id.$": "$.employee_id",
+        "execution_id.$": "$.execution_id"
+      },
+      "ResultPath": "$.context",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed", "States.Timeout"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "HandleError"
+        }
+      ],
+      "Next": "LLMCouncil"
+    },
+
+    "LLMCouncil": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "CallGemini",
+          "States": {
+            "CallGemini": {
+              "Type": "Task",
+              "Resource": "${LLMGeminiArn}",
+              "Parameters": {
+                "context.$": "$.context",
+                "execution_id.$": "$.execution_id",
+                "model": "gemini-3-flash-preview",
+                "style": "thoughtful"
+              },
+              "ResultPath": "$.gemini_result",
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed", "RateLimitError"],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "CallOpenAI",
+          "States": {
+            "CallOpenAI": {
+              "Type": "Task",
+              "Resource": "${LLMOpenAIArn}",
+              "Parameters": {
+                "context.$": "$.context",
+                "execution_id.$": "$.execution_id",
+                "model": "gpt-4o",
+                "style": "professional"
+              },
+              "ResultPath": "$.openai_result",
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed", "RateLimitError"],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "CallGrok",
+          "States": {
+            "CallGrok": {
+              "Type": "Task",
+              "Resource": "${LLMGrokArn}",
+              "Parameters": {
+                "context.$": "$.context",
+                "execution_id.$": "$.execution_id",
+                "model": "grok-4",
+                "style": "witty"
+              },
+              "ResultPath": "$.grok_result",
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed", "RateLimitError"],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": "$.council_results",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "HandleError"
+        }
+      ],
+      "Next": "AggregateResults"
+    },
+
+    "AggregateResults": {
+      "Type": "Task",
+      "Resource": "${LLMAggregatorArn}",
+      "Parameters": {
+        "council_results.$": "$.council_results",
+        "context.$": "$.context",
+        "execution_id.$": "$.execution_id",
+        "selection_method": "llm_judge"
+      },
+      "ResultPath": "$.aggregation",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "HandleError"
+        }
+      ],
+      "Next": "CheckMediaRequired"
+    },
+
+    "CheckMediaRequired": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.context.campaign.workflow_config.generate_media",
+          "BooleanEquals": true,
+          "Next": "RenderMedia"
+        }
+      ],
+      "Default": "StoreResultsNoMedia"
+    },
+
+    "RenderMedia": {
+      "Type": "Task",
+      "Resource": "${MemeRendererArn}",
+      "Parameters": {
+        "post_content.$": "$.aggregation.selected_post",
+        "template.$": "$.context.campaign.workflow_config.media_template",
+        "execution_id.$": "$.execution_id"
+      },
+      "ResultPath": "$.media",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.media_error",
+          "Next": "StoreResults"
+        }
+      ],
+      "Next": "StoreResults"
+    },
+
+    "StoreResultsNoMedia": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ContextFetcherArn}",
+        "Payload": {
+          "action": "store_post",
+          "campaign_id.$": "$.campaign_id",
+          "employee_id.$": "$.employee_id",
+          "execution_id.$": "$.execution_id",
+          "post_content.$": "$.aggregation.selected_post",
+          "media_urls": [],
+          "generation_metadata.$": "$.aggregation.metadata"
+        }
+      },
+      "ResultPath": "$.stored",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "HandleError"
+        }
+      ],
+      "Next": "Success"
+    },
+
+    "StoreResults": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ContextFetcherArn}",
+        "Payload": {
+          "action": "store_post",
+          "campaign_id.$": "$.campaign_id",
+          "employee_id.$": "$.employee_id",
+          "execution_id.$": "$.execution_id",
+          "post_content.$": "$.aggregation.selected_post",
+          "media_urls.$": "$.media.urls",
+          "generation_metadata.$": "$.aggregation.metadata"
+        }
+      },
+      "ResultPath": "$.stored",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "HandleError"
+        }
+      ],
+      "Next": "Success"
+    },
+
+    "HandleError": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ContextFetcherArn}",
+        "Payload": {
+          "action": "log_error",
+          "execution_id.$": "$.execution_id",
+          "campaign_id.$": "$.campaign_id",
+          "employee_id.$": "$.employee_id",
+          "error.$": "$.error"
+        }
+      },
+      "Next": "Failure"
+    },
+
+    "Success": {
+      "Type": "Succeed"
+    },
+
+    "Failure": {
+      "Type": "Fail",
+      "Error": "WorkflowFailed",
+      "Cause": "Post generation workflow failed after error handling"
+    }
+  }
+}
