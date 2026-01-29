@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { TwitterApi, EUploadMimeType } from 'twitter-api-v2';
 import { createClient } from '@/lib/supabase/server';
 
+type PostType = 'tweet' | 'reply' | 'quote' | 'retweet' | 'like';
+
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
@@ -23,17 +25,30 @@ export async function POST(request: NextRequest) {
       .single();
 
     const formData = await request.formData();
-    const content = formData.get('content') as string;
+    const postType = (formData.get('postType') as PostType) || 'tweet';
+    const content = formData.get('content') as string | null;
+    const targetTweetId = formData.get('tweetId') as string | null;
     const mediaFile = formData.get('media') as File | null;
 
-    if (!content || typeof content !== 'string') {
+    // Validate based on post type
+    const requiresContent = ['tweet', 'reply', 'quote'].includes(postType);
+    const requiresTweetId = ['reply', 'quote', 'retweet', 'like'].includes(postType);
+
+    if (requiresContent && (!content || typeof content !== 'string' || content.trim().length === 0)) {
       return NextResponse.json(
         { error: 'Content is required' },
         { status: 400 }
       );
     }
 
-    if (content.length > 25000) {
+    if (requiresTweetId && !targetTweetId) {
+      return NextResponse.json(
+        { error: 'Tweet ID is required for this action' },
+        { status: 400 }
+      );
+    }
+
+    if (content && content.length > 25000) {
       return NextResponse.json(
         { error: 'Content exceeds 25,000 characters' },
         { status: 400 }
@@ -62,77 +77,128 @@ export async function POST(request: NextRequest) {
       accessSecret: accessTokenSecret,
     });
 
-    let mediaId: string | undefined;
+    // Get authenticated user's Twitter ID (needed for retweet/like)
+    const me = await client.v2.me();
+    const myUserId = me.data.id;
 
-    // Upload media if provided
-    if (mediaFile) {
-      const buffer = Buffer.from(await mediaFile.arrayBuffer());
-      const mimeType = mediaFile.type;
+    let result: any;
+    let resultUrl: string | null = null;
+    let actionDescription: string;
 
-      // Determine media type for Twitter
-      let twitterMimeType: EUploadMimeType;
-      if (mimeType.startsWith('image/gif')) {
-        twitterMimeType = EUploadMimeType.Gif;
-      } else if (mimeType.startsWith('image/')) {
-        twitterMimeType = EUploadMimeType.Png; // Works for jpg, png, webp
-      } else if (mimeType.startsWith('video/')) {
-        twitterMimeType = EUploadMimeType.Mp4;
-      } else {
-        return NextResponse.json(
-          { error: 'Unsupported media type. Use images (jpg, png, gif) or videos (mp4).' },
-          { status: 400 }
-        );
+    switch (postType) {
+      case 'tweet': {
+        let mediaId: string | undefined;
+
+        // Upload media if provided
+        if (mediaFile) {
+          const buffer = Buffer.from(await mediaFile.arrayBuffer());
+          const mimeType = mediaFile.type;
+
+          let twitterMimeType: EUploadMimeType;
+          if (mimeType.startsWith('image/gif')) {
+            twitterMimeType = EUploadMimeType.Gif;
+          } else if (mimeType.startsWith('image/')) {
+            twitterMimeType = EUploadMimeType.Png;
+          } else if (mimeType.startsWith('video/')) {
+            twitterMimeType = EUploadMimeType.Mp4;
+          } else {
+            return NextResponse.json(
+              { error: 'Unsupported media type. Use images (jpg, png, gif) or videos (mp4).' },
+              { status: 400 }
+            );
+          }
+
+          const maxSize = mimeType.startsWith('video/') ? 512 * 1024 * 1024
+            : mimeType.includes('gif') ? 15 * 1024 * 1024
+            : 5 * 1024 * 1024;
+
+          if (buffer.length > maxSize) {
+            return NextResponse.json(
+              { error: `File too large. Max size: ${maxSize / 1024 / 1024}MB` },
+              { status: 400 }
+            );
+          }
+
+          mediaId = await client.v1.uploadMedia(buffer, { mimeType: twitterMimeType });
+        }
+
+        const tweetOptions: any = {};
+        if (mediaId) {
+          tweetOptions.media = { media_ids: [mediaId] };
+        }
+
+        const tweet = await client.v2.tweet(content!, tweetOptions);
+        result = { id: tweet.data.id, text: tweet.data.text };
+        resultUrl = `https://x.com/i/status/${tweet.data.id}`;
+        actionDescription = 'Tweet';
+        break;
       }
 
-      // Check file size (images: 5MB, GIFs: 15MB, videos: 512MB)
-      const maxSize = mimeType.startsWith('video/') ? 512 * 1024 * 1024
-        : mimeType.includes('gif') ? 15 * 1024 * 1024
-        : 5 * 1024 * 1024;
-
-      if (buffer.length > maxSize) {
-        return NextResponse.json(
-          { error: `File too large. Max size: ${maxSize / 1024 / 1024}MB` },
-          { status: 400 }
-        );
+      case 'reply': {
+        const tweet = await client.v2.tweet(content!, {
+          reply: { in_reply_to_tweet_id: targetTweetId! }
+        });
+        result = { id: tweet.data.id, text: tweet.data.text };
+        resultUrl = `https://x.com/i/status/${tweet.data.id}`;
+        actionDescription = 'Reply';
+        break;
       }
 
-      // Upload media to Twitter
-      mediaId = await client.v1.uploadMedia(buffer, { mimeType: twitterMimeType });
+      case 'quote': {
+        const tweet = await client.v2.tweet(content!, {
+          quote_tweet_id: targetTweetId!
+        });
+        result = { id: tweet.data.id, text: tweet.data.text };
+        resultUrl = `https://x.com/i/status/${tweet.data.id}`;
+        actionDescription = 'Quote tweet';
+        break;
+      }
+
+      case 'retweet': {
+        await client.v2.retweet(myUserId, targetTweetId!);
+        result = { retweeted_tweet_id: targetTweetId };
+        resultUrl = `https://x.com/i/status/${targetTweetId}`;
+        actionDescription = 'Retweet';
+        break;
+      }
+
+      case 'like': {
+        await client.v2.like(myUserId, targetTweetId!);
+        result = { liked_tweet_id: targetTweetId };
+        resultUrl = `https://x.com/i/status/${targetTweetId}`;
+        actionDescription = 'Like';
+        break;
+      }
+
+      default:
+        return NextResponse.json(
+          { error: 'Invalid post type' },
+          { status: 400 }
+        );
     }
 
-    // Post the tweet with or without media
-    const tweetOptions: any = {};
-    if (mediaId) {
-      tweetOptions.media = { media_ids: [mediaId] };
+    // Save to database (only for content-creating actions)
+    if (['tweet', 'reply', 'quote'].includes(postType) && content) {
+      await supabase.from('social_posts').insert({
+        channel: 'x',
+        content: content,
+        external_id: result.id,
+        external_url: resultUrl,
+        author_id: userData?.id || null,
+        author_email: authUser.email || '',
+        author_name: userData?.name || authUser.email?.split('@')[0] || 'Unknown',
+      });
     }
-
-    const tweet = await client.v2.tweet(content, tweetOptions);
-
-    const tweetUrl = `https://x.com/i/status/${tweet.data.id}`;
-
-    // Save post to database
-    await supabase.from('social_posts').insert({
-      channel: 'x',
-      content: content,
-      external_id: tweet.data.id,
-      external_url: tweetUrl,
-      author_id: userData?.id || null,
-      author_email: authUser.email || '',
-      author_name: userData?.name || authUser.email?.split('@')[0] || 'Unknown',
-    });
 
     return NextResponse.json({
       success: true,
-      tweet: {
-        id: tweet.data.id,
-        text: tweet.data.text,
-        url: tweetUrl,
-      },
+      action: actionDescription,
+      result,
+      tweet: result, // For backward compatibility
     });
   } catch (error: any) {
-    console.error('Error posting to X:', error);
+    console.error('Error with X API:', error);
 
-    // Handle specific Twitter API errors
     if (error.code === 403) {
       return NextResponse.json(
         { error: 'Access denied. Check your X API permissions.' },
@@ -148,7 +214,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: error.message || 'Failed to post to X' },
+      { error: error.message || 'Failed to complete X action' },
       { status: 500 }
     );
   }

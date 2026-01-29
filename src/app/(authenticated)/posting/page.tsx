@@ -4,13 +4,14 @@ import { useState, useRef, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink } from 'lucide-react';
+import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink, MessageCircle, Repeat2, Quote, Heart } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 
 type Channel = 'x' | 'linkedin' | 'instagram';
+type PostType = 'tweet' | 'reply' | 'quote' | 'retweet' | 'like';
 
 interface ChannelConfig {
   id: Channel;
@@ -37,9 +38,28 @@ interface SocialPost {
   created_at: string;
 }
 
+interface PostTypeConfig {
+  id: PostType;
+  name: string;
+  icon: React.ElementType;
+  description: string;
+  requiresContent: boolean;
+  requiresTweetUrl: boolean;
+}
+
+const postTypes: PostTypeConfig[] = [
+  { id: 'tweet', name: 'Tweet', icon: Send, description: 'Post a new tweet', requiresContent: true, requiresTweetUrl: false },
+  { id: 'reply', name: 'Reply', icon: MessageCircle, description: 'Reply to a tweet', requiresContent: true, requiresTweetUrl: true },
+  { id: 'quote', name: 'Quote', icon: Quote, description: 'Quote tweet with comment', requiresContent: true, requiresTweetUrl: true },
+  { id: 'retweet', name: 'Retweet', icon: Repeat2, description: 'Repost a tweet', requiresContent: false, requiresTweetUrl: true },
+  { id: 'like', name: 'Like', icon: Heart, description: 'Like a tweet', requiresContent: false, requiresTweetUrl: true },
+];
+
 export default function PostingPage() {
   const [selectedChannel, setSelectedChannel] = useState<Channel>('x');
+  const [selectedPostType, setSelectedPostType] = useState<PostType>('tweet');
   const [content, setContent] = useState('');
+  const [tweetUrl, setTweetUrl] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
@@ -67,9 +87,23 @@ export default function PostingPage() {
   }, []);
 
   const currentChannel = channels.find(c => c.id === selectedChannel)!;
+  const currentPostType = postTypes.find(p => p.id === selectedPostType)!;
   const characterCount = content.length;
   const isOverLimit = characterCount > currentChannel.maxLength;
-  const canPost = content.trim().length > 0 && !isOverLimit && currentChannel.available;
+
+  // Extract tweet ID from URL
+  const extractTweetId = (url: string): string | null => {
+    const match = url.match(/(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/);
+    return match ? match[1] : null;
+  };
+
+  const tweetId = extractTweetId(tweetUrl);
+  const needsTweetUrl = currentPostType.requiresTweetUrl;
+  const needsContent = currentPostType.requiresContent;
+
+  const canPost = currentChannel.available &&
+    (!needsContent || (content.trim().length > 0 && !isOverLimit)) &&
+    (!needsTweetUrl || tweetId);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -125,8 +159,14 @@ export default function PostingPage() {
 
     try {
       const formData = new FormData();
-      formData.append('content', content.trim());
-      if (mediaFile) {
+      formData.append('postType', selectedPostType);
+      if (needsContent) {
+        formData.append('content', content.trim());
+      }
+      if (needsTweetUrl && tweetId) {
+        formData.append('tweetId', tweetId);
+      }
+      if (mediaFile && selectedPostType === 'tweet') {
         formData.append('media', mediaFile);
       }
 
@@ -138,12 +178,20 @@ export default function PostingPage() {
       const data = await response.json();
 
       if (response.ok) {
+        const actionMessages: Record<PostType, string> = {
+          tweet: 'Tweet posted successfully!',
+          reply: 'Reply posted successfully!',
+          quote: 'Quote tweet posted successfully!',
+          retweet: 'Retweeted successfully!',
+          like: 'Liked successfully!',
+        };
         setResult({
           success: true,
-          message: 'Posted successfully!',
-          tweetId: data.tweet?.id,
+          message: actionMessages[selectedPostType],
+          tweetId: data.tweet?.id || data.result?.id,
         });
         setContent('');
+        setTweetUrl('');
         removeMedia();
         // Refresh recent posts
         fetchRecentPosts();
@@ -218,12 +266,86 @@ export default function PostingPage() {
             </CardContent>
           </Card>
 
+          {/* Post Type Selection (only for X) */}
+          {selectedChannel === 'x' && (
+            <Card className="border-brand-neutral-100">
+              <CardHeader>
+                <CardTitle className="text-brand-navy-900">Action Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {postTypes.map((postType) => {
+                    const Icon = postType.icon;
+                    const isSelected = selectedPostType === postType.id;
+
+                    return (
+                      <button
+                        key={postType.id}
+                        onClick={() => setSelectedPostType(postType.id)}
+                        className={cn(
+                          "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all",
+                          isSelected
+                            ? "border-brand-brown bg-brand-brown/5 text-brand-brown"
+                            : "border-brand-neutral-200 hover:border-brand-neutral-300 text-brand-navy-600"
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="font-medium">{postType.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-sm text-brand-navy-500 mt-3">
+                  {currentPostType.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Compose */}
           <Card className="border-brand-neutral-100">
             <CardHeader>
-              <CardTitle className="text-brand-navy-900">Compose</CardTitle>
+              <CardTitle className="text-brand-navy-900">
+                {selectedPostType === 'tweet' ? 'Compose' :
+                 selectedPostType === 'reply' ? 'Reply' :
+                 selectedPostType === 'quote' ? 'Quote Tweet' :
+                 selectedPostType === 'retweet' ? 'Retweet' : 'Like'}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Tweet URL Input (for reply, quote, retweet, like) */}
+              {needsTweetUrl && (
+                <div>
+                  <label className="block text-sm font-medium text-brand-navy-700 mb-2">
+                    Tweet URL
+                  </label>
+                  <input
+                    type="text"
+                    value={tweetUrl}
+                    onChange={(e) => setTweetUrl(e.target.value)}
+                    placeholder="https://x.com/username/status/123456789"
+                    className={cn(
+                      "w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2",
+                      tweetUrl && !tweetId
+                        ? "border-red-300 focus:ring-red-500/50"
+                        : "border-brand-neutral-200 focus:ring-brand-brown/50"
+                    )}
+                  />
+                  {tweetUrl && !tweetId && (
+                    <p className="text-sm text-red-500 mt-1">
+                      Invalid tweet URL. Use format: https://x.com/username/status/123...
+                    </p>
+                  )}
+                  {tweetId && (
+                    <p className="text-sm text-green-600 mt-1">
+                      Tweet ID: {tweetId}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Content textarea (not shown for retweet/like) */}
+              {needsContent && (
               <div className="relative">
                 <textarea
                   value={content}
@@ -243,9 +365,10 @@ export default function PostingPage() {
                   {characterCount}/{currentChannel.maxLength}
                 </div>
               </div>
+              )}
 
-              {/* Media Preview */}
-              {mediaPreview && (
+              {/* Media Preview (only for tweets) */}
+              {selectedPostType === 'tweet' && mediaPreview && (
                 <div className="relative inline-block">
                   {mediaFile?.type.startsWith('video/') ? (
                     <video
@@ -269,7 +392,8 @@ export default function PostingPage() {
                 </div>
               )}
 
-              {/* Media Upload Button */}
+              {/* Media Upload Button (only for tweets) */}
+              {selectedPostType === 'tweet' && (
               <div className="flex items-center gap-3">
                 <input
                   ref={fileInputRef}
@@ -296,6 +420,7 @@ export default function PostingPage() {
                   Images: 5MB max | GIFs: 15MB | Videos: 512MB
                 </span>
               </div>
+              )}
 
               {/* Result message */}
               {result && (
@@ -334,12 +459,20 @@ export default function PostingPage() {
                   {isPosting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Posting...
+                      {selectedPostType === 'like' ? 'Liking...' :
+                       selectedPostType === 'retweet' ? 'Retweeting...' : 'Posting...'}
                     </>
                   ) : (
                     <>
-                      <Send className="h-4 w-4" />
-                      Post to {currentChannel.name}
+                      {(() => {
+                        const Icon = currentPostType.icon;
+                        return <Icon className="h-4 w-4" />;
+                      })()}
+                      {selectedPostType === 'tweet' && `Post to ${currentChannel.name}`}
+                      {selectedPostType === 'reply' && 'Send Reply'}
+                      {selectedPostType === 'quote' && 'Post Quote'}
+                      {selectedPostType === 'retweet' && 'Retweet'}
+                      {selectedPostType === 'like' && 'Like Tweet'}
                     </>
                   )}
                 </Button>
