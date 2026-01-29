@@ -80,6 +80,14 @@ export default function PostingPage() {
     quotes: number;
     impressions?: number;
   }>>({});
+  const [linkedinMetrics, setLinkedinMetrics] = useState<Record<string, {
+    impressions: number;
+    uniqueImpressions: number;
+    clicks: number;
+    likes: number;
+    comments: number;
+    shares: number;
+  }>>({});
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,6 +105,11 @@ export default function PostingPage() {
       const xPosts = data.filter(p => p.channel === 'x' && p.external_id);
       if (xPosts.length > 0) {
         fetchMetrics(xPosts.map(p => p.external_id));
+      }
+      // Fetch metrics for LinkedIn posts
+      const linkedinPosts = data.filter(p => p.channel === 'linkedin' && p.external_id);
+      if (linkedinPosts.length > 0) {
+        fetchLinkedInMetrics(linkedinPosts.map(p => p.external_id));
       }
     }
     setLoadingPosts(false);
@@ -117,6 +130,21 @@ export default function PostingPage() {
       console.error('Error fetching metrics:', error);
     } finally {
       setLoadingMetrics(false);
+    }
+  };
+
+  const fetchLinkedInMetrics = async (postIds: string[]) => {
+    if (postIds.length === 0) return;
+
+    try {
+      const response = await fetch(`/api/post/linkedin/metrics?ids=${postIds.join(',')}`);
+      const data = await response.json();
+
+      if (response.ok && data.metrics) {
+        setLinkedinMetrics(data.metrics);
+      }
+    } catch (error) {
+      console.error('Error fetching LinkedIn metrics:', error);
     }
   };
 
@@ -714,6 +742,46 @@ export default function PostingPage() {
                                     Metrics unavailable
                                   </span>
                                 )}
+                              </div>
+                            )}
+
+                            {/* Metrics for LinkedIn posts */}
+                            {post.channel === 'linkedin' && (
+                              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-brand-neutral-100">
+                                {(() => {
+                                  const liMetrics = post.external_id ? linkedinMetrics[post.external_id] : null;
+                                  if (liMetrics) {
+                                    return (
+                                      <>
+                                        <div className="flex items-center gap-1 text-xs text-brand-navy-500" title="Impressions">
+                                          <Eye className="h-3.5 w-3.5" />
+                                          <span>{liMetrics.impressions.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs text-brand-navy-500" title="Likes">
+                                          <Heart className="h-3.5 w-3.5" />
+                                          <span>{liMetrics.likes}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs text-brand-navy-500" title="Comments">
+                                          <MessageCircle className="h-3.5 w-3.5" />
+                                          <span>{liMetrics.comments}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs text-brand-navy-500" title="Shares">
+                                          <Repeat2 className="h-3.5 w-3.5" />
+                                          <span>{liMetrics.shares}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs text-brand-navy-500" title="Clicks">
+                                          <BarChart3 className="h-3.5 w-3.5" />
+                                          <span>{liMetrics.clicks}</span>
+                                        </div>
+                                      </>
+                                    );
+                                  }
+                                  return (
+                                    <span className="text-xs text-brand-navy-400">
+                                      Metrics loading...
+                                    </span>
+                                  );
+                                })()}
                               </div>
                             )}
                           </div>
