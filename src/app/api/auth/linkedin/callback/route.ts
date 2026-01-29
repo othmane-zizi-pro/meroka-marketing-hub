@@ -123,18 +123,20 @@ export async function GET(request: NextRequest) {
     // Calculate expiration time
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-    // Upsert the LinkedIn connection
+    // Store as shared admin connection (used by all users to post as company)
+    // We use 'shared_admin' as a special identifier so any team member can use it
     const { error: upsertError } = await supabase
       .from('linkedin_connections')
       .upsert({
         user_id: user.id,
-        user_email: user.email,
+        user_email: 'shared_admin',  // Shared connection identifier
         access_token: accessToken,
         expires_at: expiresAt,
         linkedin_user_id: linkedinUserId,
         linkedin_name: linkedinName,
         organization_id: organizationId,
         organization_name: organizationName,
+        connected_by: user.email,  // Track who connected it
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_email'

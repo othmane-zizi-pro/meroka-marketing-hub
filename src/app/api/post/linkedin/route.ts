@@ -73,16 +73,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get LinkedIn connection for this user
+    // Get shared admin LinkedIn connection (any team member can use it)
     const { data: connection, error: connectionError } = await supabase
       .from('linkedin_connections')
       .select('*')
-      .eq('user_email', authUser.email)
+      .eq('user_email', 'shared_admin')
       .single();
 
     if (connectionError || !connection) {
       return NextResponse.json(
-        { error: 'LinkedIn not connected. Please connect your LinkedIn account first.' },
+        { error: 'LinkedIn not connected. An admin needs to connect the company LinkedIn page first.' },
         { status: 400 }
       );
     }
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     // Check if token is expired
     if (new Date(connection.expires_at) < new Date()) {
       return NextResponse.json(
-        { error: 'LinkedIn connection expired. Please reconnect your LinkedIn account.' },
+        { error: 'LinkedIn connection expired. An admin needs to reconnect the company LinkedIn page.' },
         { status: 401 }
       );
     }
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET endpoint to check LinkedIn connection status
+// GET endpoint to check LinkedIn connection status (shared connection)
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -228,10 +228,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ connected: false });
     }
 
+    // Check for shared admin connection (used by all team members)
     const { data: connection } = await supabase
       .from('linkedin_connections')
-      .select('linkedin_name, organization_id, organization_name, expires_at')
-      .eq('user_email', user.email)
+      .select('linkedin_name, organization_id, organization_name, expires_at, connected_by')
+      .eq('user_email', 'shared_admin')
       .single();
 
     if (!connection) {
@@ -246,9 +247,11 @@ export async function GET(request: NextRequest) {
       linkedinName: connection.linkedin_name,
       organizationName: connection.organization_name,
       organizationId: connection.organization_id,
+      connectedBy: connection.connected_by,
       expiresAt: connection.expires_at,
       // If connected but no org, they need to reconnect with proper permissions
       needsReconnect: !isExpired && !hasOrganization,
+      isExpired,
     });
   } catch (error) {
     return NextResponse.json({ connected: false });

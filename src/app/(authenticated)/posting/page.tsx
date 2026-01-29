@@ -70,7 +70,9 @@ export default function PostingPage() {
   const [linkedinConnected, setLinkedinConnected] = useState(false);
   const [linkedinName, setLinkedinName] = useState<string | null>(null);
   const [linkedinOrgName, setLinkedinOrgName] = useState<string | null>(null);
+  const [linkedinConnectedBy, setLinkedinConnectedBy] = useState<string | null>(null);
   const [linkedinNeedsReconnect, setLinkedinNeedsReconnect] = useState(false);
+  const [linkedinExpired, setLinkedinExpired] = useState(false);
   const [postMetrics, setPostMetrics] = useState<Record<string, {
     likes: number;
     retweets: number;
@@ -125,7 +127,9 @@ export default function PostingPage() {
       setLinkedinConnected(data.connected);
       setLinkedinName(data.linkedinName || null);
       setLinkedinOrgName(data.organizationName || null);
+      setLinkedinConnectedBy(data.connectedBy || null);
       setLinkedinNeedsReconnect(data.needsReconnect || false);
+      setLinkedinExpired(data.isExpired || false);
     } catch (error) {
       console.error('Error fetching LinkedIn status:', error);
     }
@@ -364,7 +368,7 @@ export default function PostingPage() {
           </Card>
 
           {/* LinkedIn Connect Prompt */}
-          {selectedChannel === 'linkedin' && (!linkedinConnected || linkedinNeedsReconnect) && (
+          {selectedChannel === 'linkedin' && (!linkedinConnected || linkedinNeedsReconnect || linkedinExpired) && (
             <Card className="border-blue-200 bg-blue-50">
               <CardContent className="py-6">
                 <div className="flex flex-col items-center gap-4 text-center">
@@ -373,12 +377,15 @@ export default function PostingPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-brand-navy-900">
-                      {linkedinNeedsReconnect ? 'Reconnect LinkedIn' : 'Connect LinkedIn'}
+                      {linkedinExpired ? 'LinkedIn Connection Expired' :
+                       linkedinNeedsReconnect ? 'Reconnect LinkedIn' : 'Connect Company LinkedIn'}
                     </h3>
                     <p className="text-sm text-brand-navy-600 mt-1">
-                      {linkedinNeedsReconnect
-                        ? 'Your LinkedIn connection needs to be updated to post as your company page'
-                        : 'Connect your LinkedIn account to post as your company page'}
+                      {linkedinExpired
+                        ? 'The LinkedIn connection has expired. A page admin needs to reconnect.'
+                        : linkedinNeedsReconnect
+                        ? 'The LinkedIn connection needs to be updated for company page posting.'
+                        : 'A page admin needs to connect the company LinkedIn page. All team members can then post.'}
                     </p>
                   </div>
                   <Button
@@ -386,8 +393,11 @@ export default function PostingPage() {
                     className="gap-2 bg-blue-600 hover:bg-blue-700"
                   >
                     <Link2 className="h-4 w-4" />
-                    {linkedinNeedsReconnect ? 'Reconnect LinkedIn' : 'Connect LinkedIn Account'}
+                    {linkedinExpired || linkedinNeedsReconnect ? 'Reconnect LinkedIn' : 'Connect Company Page'}
                   </Button>
+                  <p className="text-xs text-brand-navy-500">
+                    Only page admins can connect. Once connected, everyone can post.
+                  </p>
                 </div>
               </CardContent>
             </Card>
