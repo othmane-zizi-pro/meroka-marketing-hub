@@ -218,8 +218,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Return actual error for debugging
       return NextResponse.json(
-        { error: 'Failed to post to LinkedIn. Please try again.' },
+        { error: `LinkedIn API error (${postResponse.status}): ${errorText.substring(0, 200)}` },
         { status: 500 }
       );
     }
