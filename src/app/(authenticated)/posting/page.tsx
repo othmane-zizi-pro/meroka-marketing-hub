@@ -480,10 +480,10 @@ export default function PostingPage() {
             </CardContent>
           </Card>
 
-          {/* Recent Posts */}
+          {/* Recent Activity */}
           <Card className="border-brand-neutral-100">
             <CardHeader>
-              <CardTitle className="text-brand-navy-900">Recent Posts</CardTitle>
+              <CardTitle className="text-brand-navy-900">Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
               {loadingPosts ? (
@@ -492,7 +492,7 @@ export default function PostingPage() {
                 </div>
               ) : recentPosts.length === 0 ? (
                 <p className="text-brand-navy-500 text-center py-8">
-                  No posts yet. Your posts will appear here.
+                  No activity yet. Your posts will appear here.
                 </p>
               ) : (
                 <div className="space-y-4">
