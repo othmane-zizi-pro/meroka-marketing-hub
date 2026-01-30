@@ -262,11 +262,11 @@ export default function PostingPage() {
     if (!file) return;
 
     // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4'];
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime'];
     if (!validTypes.includes(file.type)) {
       setResult({
         success: false,
-        message: 'Invalid file type. Use JPG, PNG, GIF, WebP, or MP4.',
+        message: 'Invalid file type. Use JPG, PNG, GIF, WebP, MP4, or MOV.',
       });
       return;
     }
@@ -631,7 +631,7 @@ export default function PostingPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept={selectedChannel === 'linkedin' ? "image/jpeg,image/png,image/gif" : "image/jpeg,image/png,image/gif,image/webp,video/mp4"}
+                  accept={selectedChannel === 'linkedin' ? "image/jpeg,image/png,image/gif" : "image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,.mov"}
                   onChange={handleFileSelect}
                   className="hidden"
                 />

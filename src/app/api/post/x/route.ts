@@ -163,11 +163,13 @@ export async function POST(request: NextRequest) {
             twitterMimeType = EUploadMimeType.Gif;
           } else if (mimeType.startsWith('image/')) {
             twitterMimeType = EUploadMimeType.Png;
+          } else if (mimeType === 'video/quicktime') {
+            twitterMimeType = EUploadMimeType.Mov;
           } else if (mimeType.startsWith('video/')) {
             twitterMimeType = EUploadMimeType.Mp4;
           } else {
             return NextResponse.json(
-              { error: 'Unsupported media type. Use images (jpg, png, gif) or videos (mp4).' },
+              { error: 'Unsupported media type. Use images (jpg, png, gif) or videos (mp4, mov).' },
               { status: 400 }
             );
           }
