@@ -92,6 +92,8 @@ export async function POST(request: NextRequest) {
     const content = formData.get('content') as string | null;
     const targetTweetId = formData.get('tweetId') as string | null;
     const mediaFile = formData.get('media') as File | null;
+    const mediaUrl = formData.get('mediaUrl') as string | null; // S3 URL for videos
+    const mediaType = formData.get('mediaType') as string | null;
 
     // Validate based on post type
     const requiresContent = ['tweet', 'reply', 'quote'].includes(postType);
@@ -152,10 +154,38 @@ export async function POST(request: NextRequest) {
       case 'tweet': {
         let mediaId: string | undefined;
 
-        // Upload media if provided
-        if (mediaFile) {
-          const buffer = Buffer.from(await mediaFile.arrayBuffer());
-          const mimeType = mediaFile.type;
+        // Upload media if provided (either direct file or S3 URL)
+        if (mediaFile || mediaUrl) {
+          let buffer: Buffer;
+          let mimeType: string;
+
+          if (mediaUrl && mediaType) {
+            // Download video from S3
+            console.log('Downloading video from S3:', mediaUrl);
+            try {
+              const s3Response = await fetch(mediaUrl);
+              if (!s3Response.ok) {
+                throw new Error(`Failed to fetch video from storage: ${s3Response.status}`);
+              }
+              buffer = Buffer.from(await s3Response.arrayBuffer());
+              mimeType = mediaType;
+              console.log('Downloaded video, size:', buffer.length);
+            } catch (downloadError: any) {
+              console.error('S3 download error:', downloadError);
+              return NextResponse.json(
+                { error: `Failed to download video: ${downloadError.message}` },
+                { status: 500 }
+              );
+            }
+          } else if (mediaFile) {
+            buffer = Buffer.from(await mediaFile.arrayBuffer());
+            mimeType = mediaFile.type;
+          } else {
+            return NextResponse.json(
+              { error: 'No media provided' },
+              { status: 400 }
+            );
+          }
 
           let twitterMimeType: EUploadMimeType;
 
@@ -174,19 +204,22 @@ export async function POST(request: NextRequest) {
             );
           }
 
-          // Vercel serverless body limit is ~50MB on Pro plan
-          const maxSize = mimeType.startsWith('video/') ? 50 * 1024 * 1024
-            : mimeType.includes('gif') ? 15 * 1024 * 1024
-            : 5 * 1024 * 1024;
+          // Size validation (skip for S3 URLs as they're already uploaded)
+          if (!mediaUrl) {
+            const maxSize = mimeType.startsWith('video/') ? 50 * 1024 * 1024
+              : mimeType.includes('gif') ? 15 * 1024 * 1024
+              : 5 * 1024 * 1024;
 
-          if (buffer.length > maxSize) {
-            return NextResponse.json(
-              { error: `File too large. Max size: ${maxSize / 1024 / 1024}MB` },
-              { status: 400 }
-            );
+            if (buffer.length > maxSize) {
+              return NextResponse.json(
+                { error: `File too large. Max size: ${maxSize / 1024 / 1024}MB` },
+                { status: 400 }
+              );
+            }
           }
 
           try {
+            console.log('Uploading to Twitter, type:', twitterMimeType, 'size:', buffer.length);
             // Upload media with appropriate settings
             // For videos, the library handles chunked upload automatically
             mediaId = await client.v1.uploadMedia(buffer, {
@@ -194,6 +227,7 @@ export async function POST(request: NextRequest) {
               target: 'tweet',
               longVideo: mimeType.startsWith('video/'),
             });
+            console.log('Twitter upload complete, mediaId:', mediaId);
           } catch (uploadError: any) {
             console.error('Media upload error:', uploadError);
             return NextResponse.json(

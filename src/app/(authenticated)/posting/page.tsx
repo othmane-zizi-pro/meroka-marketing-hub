@@ -63,6 +63,9 @@ export default function PostingPage() {
   const [tweetUrl, setTweetUrl] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [mediaS3Url, setMediaS3Url] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; tweetId?: string; postUrl?: string } | null>(null);
   const [recentPosts, setRecentPosts] = useState<SocialPost[]>([]);
@@ -272,15 +275,16 @@ export default function PostingPage() {
     }
 
     // Validate file size
-    // Note: Vercel serverless has body size limits (4.5MB Hobby, 50MB Pro)
-    const maxSize = file.type.startsWith('video/') ? 50 * 1024 * 1024  // 50MB for videos
+    // Videos go directly to S3, so can be up to Twitter's 512MB limit
+    // Images go through the API, limited to 5MB
+    const maxSize = file.type.startsWith('video/') ? 512 * 1024 * 1024  // 512MB for videos (Twitter limit)
       : file.type.includes('gif') ? 15 * 1024 * 1024
       : 5 * 1024 * 1024;
 
     if (file.size > maxSize) {
       setResult({
         success: false,
-        message: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max size for videos: 50MB`,
+        message: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max size: ${maxSize / 1024 / 1024}MB`,
       });
       return;
     }
@@ -299,9 +303,51 @@ export default function PostingPage() {
   const removeMedia = () => {
     setMediaFile(null);
     setMediaPreview(null);
+    setMediaS3Url(null);
+    setUploadProgress(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  // Upload video to S3 and return the URL
+  const uploadToS3 = async (file: File): Promise<string> => {
+    setUploadProgress('Getting upload URL...');
+
+    // Get presigned URL
+    const presignResponse = await fetch('/api/upload/presign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: file.name,
+        contentType: file.type,
+      }),
+    });
+
+    if (!presignResponse.ok) {
+      const error = await presignResponse.json();
+      throw new Error(error.error || 'Failed to get upload URL');
+    }
+
+    const { presignedUrl, fileUrl } = await presignResponse.json();
+
+    setUploadProgress('Uploading video...');
+
+    // Upload directly to S3
+    const uploadResponse = await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+      },
+      body: file,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error('Failed to upload video to storage');
+    }
+
+    setUploadProgress(null);
+    return fileUrl;
   };
 
   const handlePost = async () => {
@@ -351,8 +397,31 @@ export default function PostingPage() {
         if (needsTweetUrl && tweetId) {
           formData.append('tweetId', tweetId);
         }
+
+        // Handle media upload
         if (mediaFile && selectedPostType === 'tweet') {
-          formData.append('media', mediaFile);
+          const isVideo = mediaFile.type.startsWith('video/');
+
+          if (isVideo) {
+            // For videos, upload to S3 first and pass the URL
+            try {
+              setUploadProgress('Uploading video...');
+              const s3Url = await uploadToS3(mediaFile);
+              formData.append('mediaUrl', s3Url);
+              formData.append('mediaType', mediaFile.type);
+            } catch (uploadError: any) {
+              setResult({
+                success: false,
+                message: uploadError.message || 'Failed to upload video',
+              });
+              setIsPosting(false);
+              setUploadProgress(null);
+              return;
+            }
+          } else {
+            // For images, upload directly through the API
+            formData.append('media', mediaFile);
+          }
         }
 
         const response = await fetch('/api/post/x', {
@@ -394,6 +463,7 @@ export default function PostingPage() {
       });
     } finally {
       setIsPosting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -654,7 +724,7 @@ export default function PostingPage() {
                 </button>
                 )}
                 <span className="text-xs text-brand-navy-400">
-                  {selectedChannel === 'linkedin' ? 'Images: 5MB max (JPG, PNG, GIF)' : 'Images: 5MB max | GIFs: 15MB | Videos: 50MB'}
+                  {selectedChannel === 'linkedin' ? 'Images: 5MB max (JPG, PNG, GIF)' : 'Images: 5MB max | GIFs: 15MB | Videos: 512MB'}
                 </span>
               </div>
               )}
@@ -696,9 +766,9 @@ export default function PostingPage() {
                   {isPosting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      {selectedChannel === 'linkedin' ? 'Posting...' :
+                      {uploadProgress || (selectedChannel === 'linkedin' ? 'Posting...' :
                        selectedPostType === 'like' ? 'Liking...' :
-                       selectedPostType === 'retweet' ? 'Retweeting...' : 'Posting...'}
+                       selectedPostType === 'retweet' ? 'Retweeting...' : 'Posting...')}
                     </>
                   ) : (
                     <>
