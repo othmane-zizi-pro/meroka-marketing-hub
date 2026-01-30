@@ -11,11 +11,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's internal ID
+    // Get user's internal ID by email
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('id')
-      .eq('auth_id', user.id)
+      .eq('email', user.email)
       .single();
 
     if (userError || !userData) {
