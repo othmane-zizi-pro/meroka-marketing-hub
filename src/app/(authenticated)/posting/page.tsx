@@ -272,14 +272,15 @@ export default function PostingPage() {
     }
 
     // Validate file size
-    const maxSize = file.type.startsWith('video/') ? 512 * 1024 * 1024
+    // Note: Vercel serverless has body size limits (4.5MB Hobby, 50MB Pro)
+    const maxSize = file.type.startsWith('video/') ? 50 * 1024 * 1024  // 50MB for videos
       : file.type.includes('gif') ? 15 * 1024 * 1024
       : 5 * 1024 * 1024;
 
     if (file.size > maxSize) {
       setResult({
         success: false,
-        message: `File too large. Max size: ${maxSize / 1024 / 1024}MB`,
+        message: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max size for videos: 50MB`,
       });
       return;
     }
@@ -385,10 +386,11 @@ export default function PostingPage() {
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Post error:', error);
       setResult({
         success: false,
-        message: 'Network error. Please try again.',
+        message: error?.message || 'Network error. Please try again.',
       });
     } finally {
       setIsPosting(false);
@@ -652,7 +654,7 @@ export default function PostingPage() {
                 </button>
                 )}
                 <span className="text-xs text-brand-navy-400">
-                  {selectedChannel === 'linkedin' ? 'Images: 5MB max (JPG, PNG, GIF)' : 'Images: 5MB max | GIFs: 15MB | Videos: 512MB'}
+                  {selectedChannel === 'linkedin' ? 'Images: 5MB max (JPG, PNG, GIF)' : 'Images: 5MB max | GIFs: 15MB | Videos: 50MB'}
                 </span>
               </div>
               )}

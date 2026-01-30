@@ -174,7 +174,8 @@ export async function POST(request: NextRequest) {
             );
           }
 
-          const maxSize = mimeType.startsWith('video/') ? 512 * 1024 * 1024
+          // Vercel serverless body limit is ~50MB on Pro plan
+          const maxSize = mimeType.startsWith('video/') ? 50 * 1024 * 1024
             : mimeType.includes('gif') ? 15 * 1024 * 1024
             : 5 * 1024 * 1024;
 
