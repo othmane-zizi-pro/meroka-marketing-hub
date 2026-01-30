@@ -5,7 +5,9 @@ import { useParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Podium } from '@/components/posts/Podium';
 import { EmployeePostCard } from '@/components/posts/EmployeePostCard';
+import { ComposePostCard } from '@/components/posts/ComposePostCard';
 import { createClient } from '@/lib/supabase/client';
+import { SourceType } from '@/components/posts/PostBadges';
 import { useUser } from '@/hooks/useUser';
 import { Loader2, Filter } from 'lucide-react';
 import { Channel } from '@/types';
@@ -40,6 +42,9 @@ interface Post {
   status: string;
   campaign_id: string;
   campaign_name: string;
+  source_type: SourceType;
+  original_content: string | null;
+  edit_distance: number | null;
 }
 
 interface Comment {
@@ -98,6 +103,9 @@ export default function ChannelPage() {
           status,
           author_id,
           campaign_id,
+          source_type,
+          original_content,
+          edit_distance,
           campaigns!inner (
             id,
             name,
@@ -139,6 +147,9 @@ export default function ChannelPage() {
           status: post.status,
           campaign_id: post.campaign_id,
           campaign_name: campaign?.name || 'Unknown Campaign',
+          source_type: (post.source_type as SourceType) || 'ai_generated',
+          original_content: post.original_content,
+          edit_distance: post.edit_distance,
         };
       });
 
@@ -274,6 +285,15 @@ export default function ChannelPage() {
               </div>
             )}
 
+            {/* Compose Post Card - only show when a specific campaign is selected */}
+            {selectedCampaign !== 'all' && (
+              <ComposePostCard
+                campaignId={selectedCampaign}
+                campaignName={campaigns.find(c => c.id === selectedCampaign)?.name || 'Campaign'}
+                onPostCreated={fetchCampaignsAndPosts}
+              />
+            )}
+
             {filteredPosts.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-brand-navy-500">No posts yet</p>
@@ -307,6 +327,11 @@ export default function ChannelPage() {
                       initialComments={comments[post.id] || []}
                       onLikeChange={handleLikeChange}
                       onContentUpdate={handleContentUpdate}
+                      sourceType={post.source_type}
+                      isEdited={post.source_type === 'ai_generated' && (
+                        (post.edit_distance !== null && post.edit_distance > 0) ||
+                        (post.original_content !== null && post.content !== post.original_content)
+                      )}
                     />
                   ))}
                 </div>

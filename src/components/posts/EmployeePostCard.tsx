@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Heart, MessageCircle, Send, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { PostBadges, SourceType } from '@/components/posts/PostBadges';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { formatDistanceToNow } from '@/lib/utils';
@@ -32,6 +33,8 @@ interface EmployeePostCardProps {
   initialComments?: Comment[];
   onLikeChange?: (postId: string, liked: boolean, newCount: number) => void;
   onContentUpdate?: (postId: string, newContent: string) => void;
+  sourceType?: SourceType;
+  isEdited?: boolean;
 }
 
 export function EmployeePostCard({
@@ -41,6 +44,8 @@ export function EmployeePostCard({
   initialComments = [],
   onLikeChange,
   onContentUpdate,
+  sourceType,
+  isEdited = false,
 }: EmployeePostCardProps) {
   const [liked, setLiked] = useState(initialLiked);
   const [likesCount, setLikesCount] = useState(post.likes_count);
@@ -166,6 +171,9 @@ export function EmployeePostCard({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {sourceType && (
+              <PostBadges sourceType={sourceType} isEdited={isEdited} />
+            )}
             {canEdit && !isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
