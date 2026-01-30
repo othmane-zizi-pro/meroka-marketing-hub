@@ -55,10 +55,12 @@ export async function POST(request: NextRequest) {
     const key = `social-media-uploads/${uuidv4()}.${extension}`;
 
     // Create presigned URL for PUT operation
+    // ACL public-read allows the X API to download the video
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
       ContentType: contentType,
+      ACL: 'public-read',
     });
 
     const presignedUrl = await getSignedUrl(s3Client, command, {
