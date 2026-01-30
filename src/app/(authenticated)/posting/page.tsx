@@ -275,11 +275,17 @@ export default function PostingPage() {
     }
 
     // Validate file size
-    // Videos go directly to S3, so can be up to Twitter's 512MB limit
+    // Videos go directly to S3 - Twitter allows 512MB, LinkedIn allows 200MB
     // Images go through the API, limited to 5MB
-    const maxSize = file.type.startsWith('video/') ? 512 * 1024 * 1024  // 512MB for videos (Twitter limit)
-      : file.type.includes('gif') ? 15 * 1024 * 1024
-      : 5 * 1024 * 1024;
+    const isVideo = file.type.startsWith('video/');
+    let maxSize: number;
+    if (isVideo) {
+      maxSize = selectedChannel === 'linkedin' ? 200 * 1024 * 1024 : 512 * 1024 * 1024;
+    } else if (file.type.includes('gif')) {
+      maxSize = 15 * 1024 * 1024;
+    } else {
+      maxSize = 5 * 1024 * 1024;
+    }
 
     if (file.size > maxSize) {
       setResult({
@@ -364,8 +370,30 @@ export default function PostingPage() {
       if (selectedChannel === 'linkedin') {
         // LinkedIn posting
         formData.append('content', content.trim());
-        if (mediaFile && mediaFile.type.startsWith('image/')) {
-          formData.append('media', mediaFile);
+
+        if (mediaFile) {
+          const isVideo = mediaFile.type.startsWith('video/');
+
+          if (isVideo) {
+            // For videos, upload to S3 first and pass the URL
+            try {
+              setUploadProgress('Uploading video...');
+              const s3Url = await uploadToS3(mediaFile);
+              formData.append('mediaUrl', s3Url);
+              formData.append('mediaType', mediaFile.type);
+            } catch (uploadError: any) {
+              setResult({
+                success: false,
+                message: uploadError.message || 'Failed to upload video',
+              });
+              setIsPosting(false);
+              setUploadProgress(null);
+              return;
+            }
+          } else if (mediaFile.type.startsWith('image/')) {
+            // For images, upload directly through the API
+            formData.append('media', mediaFile);
+          }
         }
 
         const response = await fetch('/api/post/linkedin', {
@@ -705,7 +733,7 @@ export default function PostingPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept={selectedChannel === 'linkedin' ? "image/jpeg,image/png,image/gif" : "image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,.mov"}
+                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,.mov"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
@@ -716,7 +744,6 @@ export default function PostingPage() {
                   <Image className="h-4 w-4" />
                   Add Image
                 </button>
-                {selectedChannel !== 'linkedin' && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-navy-600 bg-brand-neutral-100 rounded-lg hover:bg-brand-neutral-200 transition-colors"
@@ -724,9 +751,8 @@ export default function PostingPage() {
                   <Film className="h-4 w-4" />
                   Add Video
                 </button>
-                )}
                 <span className="text-xs text-brand-navy-400">
-                  {selectedChannel === 'linkedin' ? 'Images: 5MB max (JPG, PNG, GIF)' : 'Images: 5MB max | GIFs: 15MB | Videos: 512MB'}
+                  {selectedChannel === 'linkedin' ? 'Images: 5MB max | Videos: 200MB' : 'Images: 5MB max | GIFs: 15MB | Videos: 512MB'}
                 </span>
               </div>
               )}

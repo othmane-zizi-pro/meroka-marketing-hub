@@ -98,6 +98,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const content = formData.get('content') as string;
     const mediaFile = formData.get('media') as File | null;
+    const mediaUrl = formData.get('mediaUrl') as string | null; // S3 URL for videos
+    const mediaType = formData.get('mediaType') as string | null;
 
     if (!content || content.trim().length === 0) {
       return NextResponse.json(
@@ -123,9 +125,124 @@ export async function POST(request: NextRequest) {
     }
 
     let mediaAsset: string | null = null;
+    let isVideo = false;
+
+    // Check if we have a video (either from S3 URL or direct upload)
+    const hasVideo = (mediaUrl && mediaType?.startsWith('video/')) ||
+                     (mediaFile && mediaFile.type.startsWith('video/'));
+
+    // Upload video if provided
+    if (hasVideo) {
+      isVideo = true;
+      try {
+        let videoBuffer: Buffer;
+        let videoMimeType: string;
+
+        if (mediaUrl && mediaType) {
+          // Download from S3
+          console.log('Downloading video from S3 for LinkedIn:', mediaUrl);
+          const s3Response = await fetch(mediaUrl);
+          if (!s3Response.ok) {
+            throw new Error(`Failed to fetch video from storage: ${s3Response.status}`);
+          }
+          videoBuffer = Buffer.from(await s3Response.arrayBuffer());
+          videoMimeType = mediaType;
+        } else if (mediaFile) {
+          videoBuffer = Buffer.from(await mediaFile.arrayBuffer());
+          videoMimeType = mediaFile.type;
+        } else {
+          throw new Error('No video provided');
+        }
+
+        console.log('Video size:', videoBuffer.length, 'type:', videoMimeType);
+
+        // Step 1: Initialize video upload
+        const initResponse = await fetch('https://api.linkedin.com/rest/videos?action=initializeUpload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${connection.access_token}`,
+            'Content-Type': 'application/json',
+            'X-Restli-Protocol-Version': '2.0.0',
+            'LinkedIn-Version': '202401',
+          },
+          body: JSON.stringify({
+            initializeUploadRequest: {
+              owner: `urn:li:organization:${organizationId}`,
+              fileSizeBytes: videoBuffer.length,
+            },
+          }),
+        });
+
+        if (!initResponse.ok) {
+          const errorText = await initResponse.text();
+          console.error('LinkedIn video init failed:', initResponse.status, errorText);
+          throw new Error(`LinkedIn video init failed: ${initResponse.status}`);
+        }
+
+        const initData = await initResponse.json();
+        console.log('LinkedIn video init response:', JSON.stringify(initData, null, 2));
+
+        const uploadUrl = initData.value?.uploadInstructions?.[0]?.uploadUrl;
+        mediaAsset = initData.value?.video;
+
+        if (!uploadUrl || !mediaAsset) {
+          throw new Error('Failed to get video upload URL from LinkedIn');
+        }
+
+        // Step 2: Upload the video binary
+        console.log('Uploading video to LinkedIn...');
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${connection.access_token}`,
+            'Content-Type': 'application/octet-stream',
+          },
+          body: videoBuffer,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          console.error('LinkedIn video upload failed:', uploadResponse.status, errorText);
+          throw new Error(`LinkedIn video upload failed: ${uploadResponse.status}`);
+        }
+
+        // Step 3: Finalize the upload
+        const finalizeResponse = await fetch('https://api.linkedin.com/rest/videos?action=finalizeUpload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${connection.access_token}`,
+            'Content-Type': 'application/json',
+            'X-Restli-Protocol-Version': '2.0.0',
+            'LinkedIn-Version': '202401',
+          },
+          body: JSON.stringify({
+            finalizeUploadRequest: {
+              video: mediaAsset,
+              uploadToken: '',
+              uploadedPartIds: [],
+            },
+          }),
+        });
+
+        if (!finalizeResponse.ok) {
+          const errorText = await finalizeResponse.text();
+          console.error('LinkedIn video finalize failed:', finalizeResponse.status, errorText);
+          // Continue anyway - some API versions don't require finalization
+        }
+
+        console.log('LinkedIn video upload complete, asset:', mediaAsset);
+
+      } catch (videoError: any) {
+        console.error('Error uploading video to LinkedIn:', videoError);
+        return NextResponse.json(
+          { error: `Failed to upload video: ${videoError.message}` },
+          { status: 500 }
+        );
+      }
+    }
 
     // Upload image if provided
-    if (mediaFile && mediaFile.type.startsWith('image/')) {
+    if (!hasVideo && mediaFile && mediaFile.type.startsWith('image/')) {
       try {
         // Step 1: Initialize the upload
         const initResponse = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
