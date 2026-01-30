@@ -338,6 +338,7 @@ export default function PostingPage() {
       method: 'PUT',
       headers: {
         'Content-Type': file.type,
+        'x-amz-acl': 'public-read',
       },
       body: file,
     });
