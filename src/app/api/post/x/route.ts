@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { TwitterApi, EUploadMimeType } from 'twitter-api-v2';
 import { createClient } from '@/lib/supabase/server';
 
+// Allow larger body size for video uploads (up to 512MB)
+export const maxDuration = 300; // 5 minutes for video processing
+export const dynamic = 'force-dynamic';
+
 type PostType = 'tweet' | 'reply' | 'quote' | 'retweet' | 'like';
 
 // Send notification to Slack
@@ -154,6 +158,7 @@ export async function POST(request: NextRequest) {
           const mimeType = mediaFile.type;
 
           let twitterMimeType: EUploadMimeType;
+
           if (mimeType.startsWith('image/gif')) {
             twitterMimeType = EUploadMimeType.Gif;
           } else if (mimeType.startsWith('image/')) {
@@ -178,7 +183,21 @@ export async function POST(request: NextRequest) {
             );
           }
 
-          mediaId = await client.v1.uploadMedia(buffer, { mimeType: twitterMimeType });
+          try {
+            // Upload media with appropriate settings
+            // For videos, the library handles chunked upload automatically
+            mediaId = await client.v1.uploadMedia(buffer, {
+              mimeType: twitterMimeType,
+              target: 'tweet',
+              longVideo: mimeType.startsWith('video/'),
+            });
+          } catch (uploadError: any) {
+            console.error('Media upload error:', uploadError);
+            return NextResponse.json(
+              { error: `Failed to upload media: ${uploadError.message || 'Unknown error'}` },
+              { status: 500 }
+            );
+          }
         }
 
         const tweetOptions: any = {};
