@@ -12,7 +12,7 @@ const s3Client = new S3Client({
   },
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'voice-exp-recordings';
+const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'meroka-social-media-uploads';
 
 export async function POST(request: NextRequest) {
   try {
