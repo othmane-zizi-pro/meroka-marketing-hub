@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Heart, MessageCircle, Send, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react';
+import { Heart, MessageCircle, Send, ChevronDown, ChevronUp, Pencil, Check, X, Trash2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { PostBadges, SourceType } from '@/components/posts/PostBadges';
@@ -33,6 +33,7 @@ interface EmployeePostCardProps {
   initialComments?: Comment[];
   onLikeChange?: (postId: string, liked: boolean, newCount: number) => void;
   onContentUpdate?: (postId: string, newContent: string) => void;
+  onDelete?: (postId: string) => void;
   sourceType?: SourceType;
   isEdited?: boolean;
 }
@@ -44,6 +45,7 @@ export function EmployeePostCard({
   initialComments = [],
   onLikeChange,
   onContentUpdate,
+  onDelete,
   sourceType,
   isEdited = false,
 }: EmployeePostCardProps) {
@@ -57,10 +59,14 @@ export function EmployeePostCard({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [editLoading, setEditLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Check if current user is the featured employee (can edit)
   const canEdit = currentUserEmail && post.author_email &&
     currentUserEmail.toLowerCase() === post.author_email.toLowerCase();
+
+  // Can delete only employee_composed posts that user authored
+  const canDelete = canEdit && sourceType === 'employee_composed';
 
   const handleSaveEdit = async () => {
     if (editLoading || !editContent.trim()) return;
@@ -87,6 +93,30 @@ export function EmployeePostCard({
   const handleCancelEdit = () => {
     setEditContent(post.content);
     setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (deleteLoading || !canDelete) return;
+    if (!confirm('Are you sure you want to delete this post?')) return;
+
+    setDeleteLoading(true);
+    try {
+      const response = await fetch(`/api/campaign/posts/${post.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        onDelete?.(post.id);
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete post');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Failed to delete post');
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handleLike = async () => {
@@ -181,6 +211,16 @@ export function EmployeePostCard({
                 title="Edit post"
               >
                 <Pencil className="h-4 w-4" />
+              </button>
+            )}
+            {canDelete && !isEditing && (
+              <button
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="p-1.5 rounded-lg hover:bg-red-50 text-brand-navy-400 hover:text-red-600 transition-colors"
+                title="Delete post"
+              >
+                <Trash2 className="h-4 w-4" />
               </button>
             )}
             <span className={cn("px-2 py-1 rounded-full text-xs font-medium", statusBadge.color)}>

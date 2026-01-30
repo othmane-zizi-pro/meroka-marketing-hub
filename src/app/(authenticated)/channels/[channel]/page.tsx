@@ -213,6 +213,10 @@ export default function ChannelPage() {
     ));
   };
 
+  const handleDelete = (postId: string) => {
+    setPosts(prev => prev.filter(p => p.id !== postId));
+  };
+
   // Filter posts by selected campaign
   const filteredPosts = selectedCampaign === 'all'
     ? posts
@@ -327,6 +331,7 @@ export default function ChannelPage() {
                       initialComments={comments[post.id] || []}
                       onLikeChange={handleLikeChange}
                       onContentUpdate={handleContentUpdate}
+                      onDelete={handleDelete}
                       sourceType={post.source_type}
                       isEdited={post.source_type === 'ai_generated' && (
                         (post.edit_distance !== null && post.edit_distance > 0) ||
