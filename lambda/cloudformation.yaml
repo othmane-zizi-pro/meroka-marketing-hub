@@ -1,0 +1,135 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Scheduled Post Publisher - Lambda + EventBridge'
+
+Parameters:
+  AppUrl:
+    Type: String
+    Description: 'The URL of your Next.js app (e.g., https://your-app.vercel.app)'
+
+  CronSecret:
+    Type: String
+    Description: 'Secret token for authenticating cron requests'
+    NoEcho: true
+
+Resources:
+  # IAM Role for Lambda
+  PublishScheduledRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: publish-scheduled-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Lambda Function
+  PublishScheduledFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: publish-scheduled-posts
+      Description: 'Triggers scheduled post publishing every minute'
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Role: !GetAtt PublishScheduledRole.Arn
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          APP_URL: !Ref AppUrl
+          CRON_SECRET: !Ref CronSecret
+      Code:
+        ZipFile: |
+          const https = require('https');
+
+          exports.handler = async (event) => {
+            console.log('Publish scheduled posts lambda triggered');
+
+            const appUrl = process.env.APP_URL;
+            const cronSecret = process.env.CRON_SECRET;
+
+            if (!appUrl || !cronSecret) {
+              console.error('Missing required environment variables');
+              return { statusCode: 500, body: JSON.stringify({ error: 'Lambda misconfigured' }) };
+            }
+
+            try {
+              const result = await callPublishEndpoint(appUrl, cronSecret);
+              console.log('Publish result:', JSON.stringify(result));
+              return { statusCode: 200, body: JSON.stringify(result) };
+            } catch (error) {
+              console.error('Error:', error);
+              return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+            }
+          };
+
+          function callPublishEndpoint(appUrl, cronSecret) {
+            return new Promise((resolve, reject) => {
+              const url = new URL('/api/cron/publish-scheduled', appUrl);
+              const options = {
+                hostname: url.hostname,
+                port: 443,
+                path: url.pathname,
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${cronSecret}`,
+                  'Content-Type': 'application/json',
+                },
+              };
+
+              const req = https.request(options, (res) => {
+                let data = '';
+                res.on('data', (chunk) => { data += chunk; });
+                res.on('end', () => {
+                  try {
+                    const parsed = JSON.parse(data);
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                      resolve(parsed);
+                    } else {
+                      reject(new Error(`API returned ${res.statusCode}: ${JSON.stringify(parsed)}`));
+                    }
+                  } catch (e) {
+                    reject(new Error(`Failed to parse response: ${data}`));
+                  }
+                });
+              });
+
+              req.on('error', reject);
+              req.setTimeout(30000, () => { req.destroy(); reject(new Error('Timeout')); });
+              req.end();
+            });
+          }
+
+  # EventBridge Rule - runs every minute
+  ScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: publish-scheduled-posts-trigger
+      Description: 'Triggers Lambda every minute to check for scheduled posts'
+      ScheduleExpression: 'rate(1 minute)'
+      State: ENABLED
+      Targets:
+        - Id: PublishScheduledTarget
+          Arn: !GetAtt PublishScheduledFunction.Arn
+
+  # Permission for EventBridge to invoke Lambda
+  SchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PublishScheduledFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ScheduleRule.Arn
+
+Outputs:
+  LambdaFunctionArn:
+    Description: 'ARN of the Lambda function'
+    Value: !GetAtt PublishScheduledFunction.Arn
+
+  EventBridgeRuleArn:
+    Description: 'ARN of the EventBridge rule'
+    Value: !GetAtt ScheduleRule.Arn

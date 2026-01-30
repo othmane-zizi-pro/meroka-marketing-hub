@@ -12,6 +12,8 @@ import {
   Settings,
   LogOut,
   Send,
+  FileEdit,
+  Clock,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { XIcon } from '@/components/ui/icons';
@@ -23,6 +25,8 @@ const navigation = [
   { name: 'X', href: '/channels/twitter', icon: XIcon },
   { name: 'Instagram', href: '/channels/instagram', icon: Instagram },
   { name: 'Posting', href: '/posting', icon: Send },
+  { name: 'Proofreading', href: '/proofreading', icon: FileEdit },
+  { name: 'Scheduled', href: '/scheduled', icon: Clock },
   { name: 'KPIs', href: '/kpis', icon: BarChart3 },
   // { name: 'Leaderboard', href: '/leaderboard', icon: Trophy }, // Hidden for now
   { name: 'Settings', href: '/settings', icon: Settings },

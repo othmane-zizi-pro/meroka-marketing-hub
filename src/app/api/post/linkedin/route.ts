@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
             'Authorization': `Bearer ${connection.access_token}`,
             'Content-Type': 'application/octet-stream',
           },
-          body: videoBuffer,
+          body: new Uint8Array(videoBuffer),
         });
 
         if (!uploadResponse.ok) {

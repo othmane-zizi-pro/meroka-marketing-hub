@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink, MessageCircle, Repeat2, Quote, Heart, Link2, BarChart3, Eye, Trophy, Medal, Trash2 } from 'lucide-react';
+import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink, MessageCircle, Repeat2, Quote, Heart, Link2, BarChart3, Eye, Trophy, Medal, Trash2, FileEdit, Clock, Zap } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -12,6 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 type Channel = 'x' | 'linkedin' | 'instagram';
 type PostType = 'tweet' | 'reply' | 'quote' | 'retweet' | 'like';
+type PostRoute = 'direct' | 'proofreading' | 'scheduled';
 
 interface ChannelConfig {
   id: Channel;
@@ -94,6 +95,9 @@ export default function PostingPage() {
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<PostRoute>('direct');
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ADMIN_EMAIL = 'othmane.zizi@meroka.com';
@@ -361,10 +365,103 @@ export default function PostingPage() {
   const handlePost = async () => {
     if (!canPost || isPosting) return;
 
+    // Validate scheduled time if needed
+    if (selectedRoute === 'scheduled' && (!scheduledDate || !scheduledTime)) {
+      setResult({
+        success: false,
+        message: 'Please select a date and time for scheduling',
+      });
+      return;
+    }
+
     setIsPosting(true);
     setResult(null);
 
     try {
+      // Handle media upload first if needed (for proofreading/scheduled routes)
+      let mediaUrl: string | null = null;
+      let mediaType: string | null = null;
+
+      if (mediaFile && selectedRoute !== 'direct') {
+        const isVideo = mediaFile.type.startsWith('video/');
+        if (isVideo) {
+          try {
+            setUploadProgress('Uploading video...');
+            mediaUrl = await uploadToS3(mediaFile);
+            mediaType = mediaFile.type;
+          } catch (uploadError: any) {
+            setResult({
+              success: false,
+              message: uploadError.message || 'Failed to upload video',
+            });
+            setIsPosting(false);
+            setUploadProgress(null);
+            return;
+          }
+        } else {
+          // For images in non-direct routes, upload to S3 as well
+          try {
+            setUploadProgress('Uploading image...');
+            mediaUrl = await uploadToS3(mediaFile);
+            mediaType = mediaFile.type;
+          } catch (uploadError: any) {
+            setResult({
+              success: false,
+              message: uploadError.message || 'Failed to upload image',
+            });
+            setIsPosting(false);
+            setUploadProgress(null);
+            return;
+          }
+        }
+      }
+
+      // For proofreading or scheduled routes, create a draft
+      if (selectedRoute !== 'direct') {
+        const scheduledFor = selectedRoute === 'scheduled'
+          ? new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString()
+          : null;
+
+        const response = await fetch('/api/drafts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: content.trim(),
+            channel: selectedChannel,
+            mediaUrl,
+            mediaType,
+            route: selectedRoute,
+            scheduledFor,
+            scheduledTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          const routeMessages: Record<PostRoute, string> = {
+            direct: '',
+            proofreading: 'Sent to proofreading room!',
+            scheduled: `Scheduled for ${scheduledDate} at ${scheduledTime}`,
+          };
+          setResult({
+            success: true,
+            message: routeMessages[selectedRoute],
+          });
+          setContent('');
+          setScheduledDate('');
+          setScheduledTime('');
+          removeMedia();
+        } else {
+          setResult({
+            success: false,
+            message: data.error || 'Failed to create draft',
+          });
+        }
+        return;
+      }
+
+      // Direct posting - existing logic
       const formData = new FormData();
 
       if (selectedChannel === 'linkedin') {
@@ -600,6 +697,124 @@ export default function PostingPage() {
             </Card>
           )}
 
+          {/* Post Route Selection - Only for tweet/LinkedIn, not interactions */}
+          {(selectedChannel === 'linkedin' || (selectedChannel === 'x' && selectedPostType === 'tweet')) && (
+            <Card className="border-brand-neutral-100">
+              <CardHeader>
+                <CardTitle className="text-brand-navy-900">Post Destination</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Direct Post */}
+                  <button
+                    onClick={() => setSelectedRoute('direct')}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                      selectedRoute === 'direct'
+                        ? "border-brand-brown bg-brand-brown/5"
+                        : "border-brand-neutral-200 hover:border-brand-neutral-300"
+                    )}
+                  >
+                    <div className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-full",
+                      selectedRoute === 'direct' ? "bg-brand-brown text-white" : "bg-brand-neutral-100 text-brand-navy-600"
+                    )}>
+                      <Zap className="h-5 w-5" />
+                    </div>
+                    <span className={cn(
+                      "font-medium text-sm",
+                      selectedRoute === 'direct' ? "text-brand-brown" : "text-brand-navy-700"
+                    )}>
+                      Post Now
+                    </span>
+                    <span className="text-xs text-brand-navy-400 text-center">
+                      Publish immediately
+                    </span>
+                  </button>
+
+                  {/* Proofreading */}
+                  <button
+                    onClick={() => setSelectedRoute('proofreading')}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                      selectedRoute === 'proofreading'
+                        ? "border-brand-brown bg-brand-brown/5"
+                        : "border-brand-neutral-200 hover:border-brand-neutral-300"
+                    )}
+                  >
+                    <div className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-full",
+                      selectedRoute === 'proofreading' ? "bg-brand-brown text-white" : "bg-brand-neutral-100 text-brand-navy-600"
+                    )}>
+                      <FileEdit className="h-5 w-5" />
+                    </div>
+                    <span className={cn(
+                      "font-medium text-sm",
+                      selectedRoute === 'proofreading' ? "text-brand-brown" : "text-brand-navy-700"
+                    )}>
+                      Proofread
+                    </span>
+                    <span className="text-xs text-brand-navy-400 text-center">
+                      Team review first
+                    </span>
+                  </button>
+
+                  {/* Schedule */}
+                  <button
+                    onClick={() => setSelectedRoute('scheduled')}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                      selectedRoute === 'scheduled'
+                        ? "border-brand-brown bg-brand-brown/5"
+                        : "border-brand-neutral-200 hover:border-brand-neutral-300"
+                    )}
+                  >
+                    <div className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-full",
+                      selectedRoute === 'scheduled' ? "bg-brand-brown text-white" : "bg-brand-neutral-100 text-brand-navy-600"
+                    )}>
+                      <Clock className="h-5 w-5" />
+                    </div>
+                    <span className={cn(
+                      "font-medium text-sm",
+                      selectedRoute === 'scheduled' ? "text-brand-brown" : "text-brand-navy-700"
+                    )}>
+                      Schedule
+                    </span>
+                    <span className="text-xs text-brand-navy-400 text-center">
+                      Post later
+                    </span>
+                  </button>
+                </div>
+
+                {/* Schedule picker */}
+                {selectedRoute === 'scheduled' && (
+                  <div className="mt-4 pt-4 border-t border-brand-neutral-100">
+                    <p className="text-sm font-medium text-brand-navy-700 mb-3">Schedule for:</p>
+                    <div className="flex gap-3">
+                      <input
+                        type="date"
+                        value={scheduledDate}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="flex-1 px-3 py-2 text-sm border border-brand-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-brown/50"
+                      />
+                      <input
+                        type="time"
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="px-3 py-2 text-sm border border-brand-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-brown/50"
+                      />
+                    </div>
+                    <p className="text-xs text-brand-navy-400 mt-2">
+                      Time is in your local timezone
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Post Type Selection (only for X) */}
           {selectedChannel === 'x' && (
             <Card className="border-brand-neutral-100">
@@ -794,24 +1009,52 @@ export default function PostingPage() {
                   {isPosting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      {uploadProgress || (selectedChannel === 'linkedin' ? 'Posting...' :
-                       selectedPostType === 'like' ? 'Liking...' :
-                       selectedPostType === 'retweet' ? 'Retweeting...' : 'Posting...')}
+                      {uploadProgress || (
+                        selectedRoute === 'proofreading' ? 'Sending...' :
+                        selectedRoute === 'scheduled' ? 'Scheduling...' :
+                        selectedChannel === 'linkedin' ? 'Posting...' :
+                        selectedPostType === 'like' ? 'Liking...' :
+                        selectedPostType === 'retweet' ? 'Retweeting...' : 'Posting...'
+                      )}
                     </>
                   ) : (
                     <>
-                      {selectedChannel === 'linkedin' ? (
+                      {/* Route-specific buttons for tweet/LinkedIn */}
+                      {(selectedChannel === 'linkedin' || selectedPostType === 'tweet') && selectedRoute === 'proofreading' && (
                         <>
-                          <Linkedin className="h-4 w-4" />
-                          Post to LinkedIn
+                          <FileEdit className="h-4 w-4" />
+                          Send to Proofreading
                         </>
-                      ) : (
+                      )}
+                      {(selectedChannel === 'linkedin' || selectedPostType === 'tweet') && selectedRoute === 'scheduled' && (
+                        <>
+                          <Clock className="h-4 w-4" />
+                          Schedule Post
+                        </>
+                      )}
+                      {/* Direct post or X interactions */}
+                      {((selectedChannel === 'linkedin' || selectedPostType === 'tweet') && selectedRoute === 'direct') && (
+                        <>
+                          {selectedChannel === 'linkedin' ? (
+                            <>
+                              <Linkedin className="h-4 w-4" />
+                              Post to LinkedIn
+                            </>
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4" />
+                              Post to X
+                            </>
+                          )}
+                        </>
+                      )}
+                      {/* X interactions (non-tweet) */}
+                      {selectedChannel === 'x' && selectedPostType !== 'tweet' && (
                         <>
                           {(() => {
                             const Icon = currentPostType.icon;
                             return <Icon className="h-4 w-4" />;
                           })()}
-                          {selectedPostType === 'tweet' && `Post to ${currentChannel.name}`}
                           {selectedPostType === 'reply' && 'Send Reply'}
                           {selectedPostType === 'quote' && 'Post Quote'}
                           {selectedPostType === 'retweet' && 'Retweet'}
