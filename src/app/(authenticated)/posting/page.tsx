@@ -329,7 +329,7 @@ export default function PostingPage() {
       throw new Error(error.error || 'Failed to get upload URL');
     }
 
-    const { presignedUrl, fileUrl } = await presignResponse.json();
+    const { presignedUrl, downloadUrl } = await presignResponse.json();
 
     setUploadProgress('Uploading video...');
 
@@ -338,17 +338,18 @@ export default function PostingPage() {
       method: 'PUT',
       headers: {
         'Content-Type': file.type,
-        'x-amz-acl': 'public-read',
       },
       body: file,
     });
 
     if (!uploadResponse.ok) {
-      throw new Error('Failed to upload video to storage');
+      const text = await uploadResponse.text();
+      console.error('S3 upload failed:', uploadResponse.status, text);
+      throw new Error(`Failed to upload video to storage: ${uploadResponse.status}`);
     }
 
     setUploadProgress(null);
-    return fileUrl;
+    return downloadUrl;
   };
 
   const handlePost = async () => {

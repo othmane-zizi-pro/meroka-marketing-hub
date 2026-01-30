@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createClient } from '@/lib/supabase/server';
 import { v4 as uuidv4 } from 'uuid';
@@ -55,24 +55,28 @@ export async function POST(request: NextRequest) {
     const key = `social-media-uploads/${uuidv4()}.${extension}`;
 
     // Create presigned URL for PUT operation
-    // ACL public-read allows the X API to download the video
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
       ContentType: contentType,
-      ACL: 'public-read',
     });
 
     const presignedUrl = await getSignedUrl(s3Client, command, {
       expiresIn: 3600, // URL valid for 1 hour
     });
 
-    // The public URL to access the file after upload
-    const fileUrl = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
+    // Create presigned GET URL for downloading (used by X API)
+    const getCommand = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+    const downloadUrl = await getSignedUrl(s3Client, getCommand, {
+      expiresIn: 3600, // URL valid for 1 hour
+    });
 
     return NextResponse.json({
       presignedUrl,
-      fileUrl,
+      downloadUrl,
       key,
     });
   } catch (error: any) {
