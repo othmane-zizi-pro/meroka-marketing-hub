@@ -112,11 +112,15 @@ export default function ChannelPage() {
       const platform = platformMap[channel] || channel;
 
       // Get channel ID for filtering campaigns
-      const { data: channelData } = await supabase
+      const { data: channelData, error: channelError } = await supabase
         .from('channels')
         .select('id')
         .eq('platform', platform)
         .single();
+
+      if (channelError) {
+        console.error('Error fetching channel:', channelError);
+      }
 
       // First fetch all active campaigns for this channel
       let campaignsQuery = supabase
