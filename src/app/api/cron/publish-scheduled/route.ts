@@ -4,6 +4,70 @@ import { createClient } from '@supabase/supabase-js';
 // This endpoint is called by AWS Lambda to publish scheduled posts
 // Protected by CRON_SECRET
 
+// Send notification to Slack
+async function sendSlackNotification(
+  channel: string,
+  authorName: string,
+  content: string,
+  postUrl: string | null,
+  isScheduled: boolean = true
+) {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  try {
+    const truncatedContent = content.length > 200
+      ? content.substring(0, 200) + '...'
+      : content;
+
+    const channelEmoji = channel === 'linkedin' ? ':briefcase:' : ':bird:';
+    const channelName = channel === 'linkedin' ? 'LinkedIn' : 'X';
+    const scheduledNote = isScheduled ? ' (Scheduled)' : '';
+
+    const message = {
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*New ${channelName} Post${scheduledNote}* ${channelEmoji}\n*Posted by:* ${authorName}`,
+          },
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `>${truncatedContent.replace(/\n/g, '\n>')}`,
+          },
+        },
+        ...(postUrl ? [{
+          type: 'actions',
+          elements: [
+            {
+              type: 'button',
+              text: {
+                type: 'plain_text',
+                text: 'View Post',
+                emoji: true,
+              },
+              url: postUrl,
+              style: 'primary' as const,
+            },
+          ],
+        }] : []),
+      ],
+    };
+
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message),
+    });
+  } catch (error) {
+    console.error('Failed to send Slack notification:', error);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Verify the secret token
@@ -157,6 +221,14 @@ export async function POST(request: NextRequest) {
             author_name: draft.author_name,
             author_email: draft.author_email,
           });
+
+          // Send Slack notification
+          await sendSlackNotification(
+            draft.channel,
+            draft.author_name,
+            contentToPublish,
+            publishResult.externalUrl || null
+          );
 
           results.push({ id: draft.id, success: true });
           console.log(`Published post ${draft.id} to ${draft.channel}`);
