@@ -12,6 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 type Channel = 'x' | 'linkedin' | 'instagram';
 type PostType = 'tweet' | 'reply' | 'quote' | 'retweet' | 'like';
+type LinkedInPostType = 'post' | 'repost' | 'comment' | 'like';
 type PostRoute = 'direct' | 'proofreading' | 'scheduled';
 
 interface ChannelConfig {
@@ -57,6 +58,22 @@ const postTypes: PostTypeConfig[] = [
   { id: 'like', name: 'Like', icon: Heart, description: 'Like a tweet', requiresContent: false, requiresTweetUrl: true },
 ];
 
+interface LinkedInPostTypeConfig {
+  id: LinkedInPostType;
+  name: string;
+  icon: React.ElementType;
+  description: string;
+  requiresContent: boolean;
+  requiresPostUrl: boolean;
+}
+
+const linkedinPostTypes: LinkedInPostTypeConfig[] = [
+  { id: 'post', name: 'Post', icon: Send, description: 'Create a new post', requiresContent: true, requiresPostUrl: false },
+  { id: 'repost', name: 'Repost', icon: Repeat2, description: 'Share with your commentary', requiresContent: true, requiresPostUrl: true },
+  { id: 'comment', name: 'Comment', icon: MessageCircle, description: 'Comment on a post', requiresContent: true, requiresPostUrl: true },
+  { id: 'like', name: 'Like', icon: Heart, description: 'Like a post', requiresContent: false, requiresPostUrl: true },
+];
+
 export default function PostingPage() {
   const [selectedChannel, setSelectedChannel] = useState<Channel>('x');
   const [selectedPostType, setSelectedPostType] = useState<PostType>('tweet');
@@ -98,6 +115,8 @@ export default function PostingPage() {
   const [selectedRoute, setSelectedRoute] = useState<PostRoute>('direct');
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [selectedLinkedInPostType, setSelectedLinkedInPostType] = useState<LinkedInPostType>('post');
+  const [linkedinPostUrl, setLinkedinPostUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ADMIN_EMAIL = 'othmane.zizi@meroka.com';
@@ -252,9 +271,33 @@ export default function PostingPage() {
     return match ? match[1] : null;
   };
 
+  // Extract LinkedIn post ID/URN from URL
+  // LinkedIn URLs can be:
+  // - https://www.linkedin.com/feed/update/urn:li:share:1234567890/
+  // - https://www.linkedin.com/feed/update/urn:li:activity:1234567890/
+  // - https://www.linkedin.com/posts/username_activity-1234567890-xxxx
+  const extractLinkedInPostId = (url: string): string | null => {
+    // Match URN-style URLs
+    const urnMatch = url.match(/urn:li:(share|activity|ugcPost):(\d+)/);
+    if (urnMatch) {
+      return `urn:li:${urnMatch[1]}:${urnMatch[2]}`;
+    }
+    // Match posts-style URLs (activity ID in the URL)
+    const postsMatch = url.match(/linkedin\.com\/posts\/[^\/]+_activity-(\d+)/);
+    if (postsMatch) {
+      return `urn:li:activity:${postsMatch[1]}`;
+    }
+    return null;
+  };
+
   const tweetId = extractTweetId(tweetUrl);
+  const linkedinPostUrn = extractLinkedInPostId(linkedinPostUrl);
+
   const needsTweetUrl = selectedChannel === 'x' && currentPostType.requiresTweetUrl;
-  const needsContent = selectedChannel === 'linkedin' || currentPostType.requiresContent;
+  const currentLinkedInPostType = linkedinPostTypes.find(p => p.id === selectedLinkedInPostType)!;
+  const needsLinkedInPostUrl = selectedChannel === 'linkedin' && currentLinkedInPostType.requiresPostUrl;
+  const needsContent = (selectedChannel === 'linkedin' && currentLinkedInPostType.requiresContent) ||
+                       (selectedChannel === 'x' && currentPostType.requiresContent);
 
   // For LinkedIn, check if connected
   const linkedinReady = selectedChannel !== 'linkedin' || linkedinConnected;
@@ -262,7 +305,8 @@ export default function PostingPage() {
   const canPost = currentChannel.available &&
     linkedinReady &&
     (!needsContent || (content.trim().length > 0 && !isOverLimit)) &&
-    (!needsTweetUrl || tweetId);
+    (!needsTweetUrl || tweetId) &&
+    (!needsLinkedInPostUrl || linkedinPostUrn);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -466,9 +510,18 @@ export default function PostingPage() {
 
       if (selectedChannel === 'linkedin') {
         // LinkedIn posting
-        formData.append('content', content.trim());
+        formData.append('actionType', selectedLinkedInPostType);
 
-        if (mediaFile) {
+        if (needsContent) {
+          formData.append('content', content.trim());
+        }
+
+        if (needsLinkedInPostUrl && linkedinPostUrn) {
+          formData.append('targetPostUrn', linkedinPostUrn);
+        }
+
+        // Only handle media for new posts (not repost/comment/like)
+        if (mediaFile && selectedLinkedInPostType === 'post') {
           const isVideo = mediaFile.type.startsWith('video/');
 
           if (isVideo) {
@@ -501,12 +554,19 @@ export default function PostingPage() {
         const data = await response.json();
 
         if (response.ok) {
+          const actionMessages: Record<LinkedInPostType, string> = {
+            post: 'Posted to LinkedIn successfully!',
+            repost: 'Reposted successfully!',
+            comment: 'Comment added successfully!',
+            like: 'Liked successfully!',
+          };
           setResult({
             success: true,
-            message: 'Posted to LinkedIn successfully!',
+            message: actionMessages[selectedLinkedInPostType],
             postUrl: data.post?.url,
           });
           setContent('');
+          setLinkedinPostUrl('');
           removeMedia();
           fetchRecentPosts();
         } else {
@@ -851,15 +911,56 @@ export default function PostingPage() {
             </Card>
           )}
 
+          {/* LinkedIn Action Type Selection */}
+          {selectedChannel === 'linkedin' && linkedinConnected && (
+            <Card className="border-brand-neutral-100">
+              <CardHeader>
+                <CardTitle className="text-brand-navy-900">Action Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {linkedinPostTypes.map((postType) => {
+                    const Icon = postType.icon;
+                    const isSelected = selectedLinkedInPostType === postType.id;
+
+                    return (
+                      <button
+                        key={postType.id}
+                        onClick={() => setSelectedLinkedInPostType(postType.id)}
+                        className={cn(
+                          "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all",
+                          isSelected
+                            ? "border-blue-600 bg-blue-50 text-blue-600"
+                            : "border-brand-neutral-200 hover:border-brand-neutral-300 text-brand-navy-600"
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="font-medium">{postType.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-sm text-brand-navy-500 mt-3">
+                  {currentLinkedInPostType.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Compose */}
           <Card className="border-brand-neutral-100">
             <CardHeader>
               <CardTitle className="text-brand-navy-900">
-                {selectedChannel === 'linkedin' ? 'Compose Post' :
-                 selectedPostType === 'tweet' ? 'Compose' :
-                 selectedPostType === 'reply' ? 'Reply' :
-                 selectedPostType === 'quote' ? 'Quote Tweet' :
-                 selectedPostType === 'retweet' ? 'Retweet' : 'Like'}
+                {selectedChannel === 'linkedin' ? (
+                  selectedLinkedInPostType === 'post' ? 'Compose Post' :
+                  selectedLinkedInPostType === 'repost' ? 'Repost with Commentary' :
+                  selectedLinkedInPostType === 'comment' ? 'Add Comment' : 'Like Post'
+                ) : (
+                  selectedPostType === 'tweet' ? 'Compose' :
+                  selectedPostType === 'reply' ? 'Reply' :
+                  selectedPostType === 'quote' ? 'Quote Tweet' :
+                  selectedPostType === 'retweet' ? 'Retweet' : 'Like'
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -889,6 +990,37 @@ export default function PostingPage() {
                   {tweetId && (
                     <p className="text-sm text-green-600 mt-1">
                       Tweet ID: {tweetId}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* LinkedIn Post URL Input (for repost, comment, like) */}
+              {needsLinkedInPostUrl && (
+                <div>
+                  <label className="block text-sm font-medium text-brand-navy-700 mb-2">
+                    LinkedIn Post URL
+                  </label>
+                  <input
+                    type="text"
+                    value={linkedinPostUrl}
+                    onChange={(e) => setLinkedinPostUrl(e.target.value)}
+                    placeholder="https://www.linkedin.com/feed/update/urn:li:share:123456789/"
+                    className={cn(
+                      "w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2",
+                      linkedinPostUrl && !linkedinPostUrn
+                        ? "border-red-300 focus:ring-red-500/50"
+                        : "border-brand-neutral-200 focus:ring-blue-500/50"
+                    )}
+                  />
+                  {linkedinPostUrl && !linkedinPostUrn && (
+                    <p className="text-sm text-red-500 mt-1">
+                      Invalid LinkedIn post URL
+                    </p>
+                  )}
+                  {linkedinPostUrn && (
+                    <p className="text-sm text-green-600 mt-1">
+                      Post URN: {linkedinPostUrn}
                     </p>
                   )}
                 </div>
@@ -1012,40 +1144,54 @@ export default function PostingPage() {
                       {uploadProgress || (
                         selectedRoute === 'proofreading' ? 'Sending...' :
                         selectedRoute === 'scheduled' ? 'Scheduling...' :
-                        selectedChannel === 'linkedin' ? 'Posting...' :
+                        selectedChannel === 'linkedin' ? (
+                          selectedLinkedInPostType === 'like' ? 'Liking...' :
+                          selectedLinkedInPostType === 'repost' ? 'Reposting...' :
+                          selectedLinkedInPostType === 'comment' ? 'Commenting...' : 'Posting...'
+                        ) :
                         selectedPostType === 'like' ? 'Liking...' :
                         selectedPostType === 'retweet' ? 'Retweeting...' : 'Posting...'
                       )}
                     </>
                   ) : (
                     <>
-                      {/* Route-specific buttons for tweet/LinkedIn */}
-                      {(selectedChannel === 'linkedin' || selectedPostType === 'tweet') && selectedRoute === 'proofreading' && (
+                      {/* Route-specific buttons for tweet/LinkedIn post (not interactions) */}
+                      {((selectedChannel === 'linkedin' && selectedLinkedInPostType === 'post') || (selectedChannel === 'x' && selectedPostType === 'tweet')) && selectedRoute === 'proofreading' && (
                         <>
                           <FileEdit className="h-4 w-4" />
                           Send to Proofreading
                         </>
                       )}
-                      {(selectedChannel === 'linkedin' || selectedPostType === 'tweet') && selectedRoute === 'scheduled' && (
+                      {((selectedChannel === 'linkedin' && selectedLinkedInPostType === 'post') || (selectedChannel === 'x' && selectedPostType === 'tweet')) && selectedRoute === 'scheduled' && (
                         <>
                           <Clock className="h-4 w-4" />
                           Schedule Post
                         </>
                       )}
-                      {/* Direct post or X interactions */}
-                      {((selectedChannel === 'linkedin' || selectedPostType === 'tweet') && selectedRoute === 'direct') && (
+                      {/* Direct LinkedIn post */}
+                      {selectedChannel === 'linkedin' && selectedLinkedInPostType === 'post' && selectedRoute === 'direct' && (
                         <>
-                          {selectedChannel === 'linkedin' ? (
-                            <>
-                              <Linkedin className="h-4 w-4" />
-                              Post to LinkedIn
-                            </>
-                          ) : (
-                            <>
-                              <Send className="h-4 w-4" />
-                              Post to X
-                            </>
-                          )}
+                          <Linkedin className="h-4 w-4" />
+                          Post to LinkedIn
+                        </>
+                      )}
+                      {/* LinkedIn interactions */}
+                      {selectedChannel === 'linkedin' && selectedLinkedInPostType !== 'post' && (
+                        <>
+                          {(() => {
+                            const Icon = currentLinkedInPostType.icon;
+                            return <Icon className="h-4 w-4" />;
+                          })()}
+                          {selectedLinkedInPostType === 'repost' && 'Repost'}
+                          {selectedLinkedInPostType === 'comment' && 'Add Comment'}
+                          {selectedLinkedInPostType === 'like' && 'Like Post'}
+                        </>
+                      )}
+                      {/* Direct X tweet */}
+                      {selectedChannel === 'x' && selectedPostType === 'tweet' && selectedRoute === 'direct' && (
+                        <>
+                          <Send className="h-4 w-4" />
+                          Post to X
                         </>
                       )}
                       {/* X interactions (non-tweet) */}

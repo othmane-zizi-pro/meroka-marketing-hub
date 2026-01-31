@@ -96,19 +96,47 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
+    const actionType = (formData.get('actionType') as string) || 'post';
     const content = formData.get('content') as string;
+    const targetPostUrn = formData.get('targetPostUrn') as string | null;
     const mediaFile = formData.get('media') as File | null;
     const mediaUrl = formData.get('mediaUrl') as string | null; // S3 URL for videos
     const mediaType = formData.get('mediaType') as string | null;
 
-    if (!content || content.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Content is required' },
-        { status: 400 }
-      );
+    // Validate based on action type
+    if (actionType === 'like') {
+      // Like doesn't need content
+      if (!targetPostUrn) {
+        return NextResponse.json(
+          { error: 'Target post URL is required for liking' },
+          { status: 400 }
+        );
+      }
+    } else if (actionType === 'repost' || actionType === 'comment') {
+      // Repost and comment need content and target
+      if (!content || content.trim().length === 0) {
+        return NextResponse.json(
+          { error: 'Content is required' },
+          { status: 400 }
+        );
+      }
+      if (!targetPostUrn) {
+        return NextResponse.json(
+          { error: 'Target post URL is required' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Regular post needs content
+      if (!content || content.trim().length === 0) {
+        return NextResponse.json(
+          { error: 'Content is required' },
+          { status: 400 }
+        );
+      }
     }
 
-    if (content.length > 3000) {
+    if (content && content.length > 3000) {
       return NextResponse.json(
         { error: 'Content exceeds 3,000 characters' },
         { status: 400 }
@@ -124,6 +152,203 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user details for saving
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id, name, email')
+      .eq('email', authUser.email)
+      .single();
+
+    const authorName = userData?.name || connection.linkedin_name || authUser.email?.split('@')[0] || 'Unknown';
+
+    // Handle Like action
+    if (actionType === 'like') {
+      try {
+        // LinkedIn reactions API uses the socialActions endpoint
+        const reactionResponse = await fetch(`https://api.linkedin.com/v2/reactions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${connection.access_token}`,
+            'Content-Type': 'application/json',
+            'X-Restli-Protocol-Version': '2.0.0',
+          },
+          body: JSON.stringify({
+            root: targetPostUrn,
+            reactionType: 'LIKE',
+            actor: `urn:li:organization:${organizationId}`,
+          }),
+        });
+
+        if (!reactionResponse.ok) {
+          const errorText = await reactionResponse.text();
+          console.error('LinkedIn like failed:', reactionResponse.status, errorText);
+          return NextResponse.json(
+            { error: `Failed to like post: ${errorText.substring(0, 200)}` },
+            { status: 500 }
+          );
+        }
+
+        // Save to database
+        await supabase.from('social_posts').insert({
+          channel: 'linkedin',
+          content: `Liked: ${targetPostUrn}`,
+          external_id: null,
+          external_url: null,
+          author_id: userData?.id || null,
+          author_email: authUser.email || '',
+          author_name: authorName,
+        });
+
+        return NextResponse.json({
+          success: true,
+          post: { id: null, url: null },
+        });
+      } catch (error: any) {
+        console.error('Error liking on LinkedIn:', error);
+        return NextResponse.json(
+          { error: error.message || 'Failed to like on LinkedIn' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Handle Comment action
+    if (actionType === 'comment') {
+      try {
+        const commentResponse = await fetch(`https://api.linkedin.com/v2/socialActions/${encodeURIComponent(targetPostUrn!)}/comments`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${connection.access_token}`,
+            'Content-Type': 'application/json',
+            'X-Restli-Protocol-Version': '2.0.0',
+          },
+          body: JSON.stringify({
+            actor: `urn:li:organization:${organizationId}`,
+            message: {
+              text: content,
+            },
+          }),
+        });
+
+        if (!commentResponse.ok) {
+          const errorText = await commentResponse.text();
+          console.error('LinkedIn comment failed:', commentResponse.status, errorText);
+          return NextResponse.json(
+            { error: `Failed to comment: ${errorText.substring(0, 200)}` },
+            { status: 500 }
+          );
+        }
+
+        const commentData = await commentResponse.json();
+        const commentId = commentData.id || commentData['$URN'];
+
+        // Save to database
+        await supabase.from('social_posts').insert({
+          channel: 'linkedin',
+          content: `Comment on ${targetPostUrn}: ${content}`,
+          external_id: commentId,
+          external_url: null,
+          author_id: userData?.id || null,
+          author_email: authUser.email || '',
+          author_name: authorName,
+        });
+
+        sendSlackNotification(
+          authorName,
+          connection.organization_name || 'Company',
+          `Commented: ${content}`,
+          null
+        );
+
+        return NextResponse.json({
+          success: true,
+          post: { id: commentId, url: null },
+        });
+      } catch (error: any) {
+        console.error('Error commenting on LinkedIn:', error);
+        return NextResponse.json(
+          { error: error.message || 'Failed to comment on LinkedIn' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Handle Repost (share with commentary)
+    if (actionType === 'repost') {
+      try {
+        const repostBody = {
+          author: `urn:li:organization:${organizationId}`,
+          commentary: content,
+          visibility: 'PUBLIC',
+          distribution: {
+            feedDistribution: 'MAIN_FEED',
+            targetEntities: [],
+            thirdPartyDistributionChannels: [],
+          },
+          lifecycleState: 'PUBLISHED',
+          isReshareDisabledByAuthor: false,
+          reshareContext: {
+            parent: targetPostUrn,
+          },
+        };
+
+        const repostResponse = await fetch('https://api.linkedin.com/rest/posts', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${connection.access_token}`,
+            'Content-Type': 'application/json',
+            'X-Restli-Protocol-Version': '2.0.0',
+            'LinkedIn-Version': '202601',
+          },
+          body: JSON.stringify(repostBody),
+        });
+
+        if (!repostResponse.ok) {
+          const errorText = await repostResponse.text();
+          console.error('LinkedIn repost failed:', repostResponse.status, errorText);
+          return NextResponse.json(
+            { error: `Failed to repost: ${errorText.substring(0, 200)}` },
+            { status: 500 }
+          );
+        }
+
+        const postId = repostResponse.headers.get('x-restli-id');
+        const postUrl = postId
+          ? `https://www.linkedin.com/feed/update/${postId}/`
+          : null;
+
+        // Save to database
+        await supabase.from('social_posts').insert({
+          channel: 'linkedin',
+          content: `Repost of ${targetPostUrn}: ${content}`,
+          external_id: postId,
+          external_url: postUrl,
+          author_id: userData?.id || null,
+          author_email: authUser.email || '',
+          author_name: authorName,
+        });
+
+        sendSlackNotification(
+          authorName,
+          connection.organization_name || 'Company',
+          `Repost: ${content}`,
+          postUrl
+        );
+
+        return NextResponse.json({
+          success: true,
+          post: { id: postId, url: postUrl },
+        });
+      } catch (error: any) {
+        console.error('Error reposting on LinkedIn:', error);
+        return NextResponse.json(
+          { error: error.message || 'Failed to repost on LinkedIn' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Regular post - continue with existing logic
     let mediaAsset: string | null = null;
     let isVideo = false;
 
@@ -351,15 +576,7 @@ export async function POST(request: NextRequest) {
       ? `https://www.linkedin.com/feed/update/${postId}/`
       : null;
 
-    // Get user details for saving
-    const { data: userData } = await supabase
-      .from('users')
-      .select('id, name, email')
-      .eq('email', authUser.email)
-      .single();
-
     // Save post to database
-    const authorName = userData?.name || connection.linkedin_name || authUser.email?.split('@')[0] || 'Unknown';
     await supabase.from('social_posts').insert({
       channel: 'linkedin',
       content: content,
