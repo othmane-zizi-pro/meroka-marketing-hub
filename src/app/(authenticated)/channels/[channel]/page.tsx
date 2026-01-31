@@ -9,7 +9,7 @@ import { ComposePostCard } from '@/components/posts/ComposePostCard';
 import { createClient } from '@/lib/supabase/client';
 import { SourceType } from '@/components/posts/PostBadges';
 import { useUser } from '@/hooks/useUser';
-import { Loader2, Filter } from 'lucide-react';
+import { Loader2, Filter, User } from 'lucide-react';
 import { Channel } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -63,6 +63,7 @@ export default function ChannelPage() {
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<string>('all');
+  const [selectedAuthor, setSelectedAuthor] = useState<string>('all');
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
@@ -217,13 +218,34 @@ export default function ChannelPage() {
     setPosts(prev => prev.filter(p => p.id !== postId));
   };
 
+  // Check if Employee Voices campaign is selected
+  const isEmployeeVoices = campaigns.find(c => c.id === selectedCampaign)?.name === 'Employee Voices';
+
   // Filter posts by selected campaign
-  const filteredPosts = selectedCampaign === 'all'
+  const campaignFilteredPosts = selectedCampaign === 'all'
     ? posts
     : posts.filter(p => p.campaign_id === selectedCampaign);
 
-  // Get top 3 posts by likes for podium (from filtered posts)
-  const topPosts = [...filteredPosts]
+  // Get unique authors for Employee Voices filter
+  const getUniqueAuthors = () => {
+    const authorMap = new Map<string, string>();
+    campaignFilteredPosts.forEach(post => {
+      if (!authorMap.has(post.author_email)) {
+        authorMap.set(post.author_email, post.author_name);
+      }
+    });
+    return Array.from(authorMap.entries()).map(([email, name]) => ({ email, name }));
+  };
+
+  const uniqueAuthors = getUniqueAuthors();
+
+  // Filter by author (only for Employee Voices)
+  const filteredPosts = isEmployeeVoices && selectedAuthor !== 'all'
+    ? campaignFilteredPosts.filter(p => p.author_email === selectedAuthor)
+    : campaignFilteredPosts;
+
+  // Get top 3 posts by likes for podium (from campaign filtered posts, not author filtered)
+  const topPosts = [...campaignFilteredPosts]
     .sort((a, b) => b.likes_count - a.likes_count)
     .slice(0, 3);
 
@@ -261,7 +283,10 @@ export default function ChannelPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => setSelectedCampaign('all')}
+                    onClick={() => {
+                      setSelectedCampaign('all');
+                      setSelectedAuthor('all');
+                    }}
                     className={cn(
                       "px-4 py-2 rounded-full text-sm font-medium transition-colors",
                       selectedCampaign === 'all'
@@ -274,7 +299,10 @@ export default function ChannelPage() {
                   {campaigns.map(campaign => (
                     <button
                       key={campaign.id}
-                      onClick={() => setSelectedCampaign(campaign.id)}
+                      onClick={() => {
+                        setSelectedCampaign(campaign.id);
+                        setSelectedAuthor('all');
+                      }}
                       className={cn(
                         "px-4 py-2 rounded-full text-sm font-medium transition-colors",
                         selectedCampaign === campaign.id
@@ -308,9 +336,28 @@ export default function ChannelPage() {
             ) : (
               <>
                 {/* Podium for top 3 - only for Employee Voices campaign */}
-                {topPosts.length >= 3 &&
-                  campaigns.find(c => c.id === selectedCampaign)?.name === 'Employee Voices' && (
+                {topPosts.length >= 3 && isEmployeeVoices && (
                   <Podium posts={topPosts} />
+                )}
+
+                {/* Author filter - only for Employee Voices campaign */}
+                {isEmployeeVoices && uniqueAuthors.length > 1 && (
+                  <div className="flex items-center gap-3 mb-4">
+                    <User className="h-4 w-4 text-brand-navy-500" />
+                    <span className="text-sm font-medium text-brand-navy-700">Filter by Employee:</span>
+                    <select
+                      value={selectedAuthor}
+                      onChange={(e) => setSelectedAuthor(e.target.value)}
+                      className="px-3 py-2 text-sm font-medium border border-brand-neutral-200 rounded-lg bg-white text-brand-navy-600 focus:outline-none focus:ring-2 focus:ring-brand-brown/50"
+                    >
+                      <option value="all">All Employees</option>
+                      {uniqueAuthors.map((author) => (
+                        <option key={author.email} value={author.email}>
+                          {author.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 )}
 
                 {/* Post feed */}
