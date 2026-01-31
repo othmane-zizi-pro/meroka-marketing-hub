@@ -288,8 +288,9 @@ export async function POST(request: NextRequest) {
     // Handle Repost (share with optional commentary)
     if (actionType === 'repost') {
       try {
-        const repostBody: any = {
+        const repostBody = {
           author: `urn:li:organization:${organizationId}`,
+          commentary: content?.trim() || '', // Empty string if no commentary
           visibility: 'PUBLIC',
           distribution: {
             feedDistribution: 'MAIN_FEED',
@@ -302,11 +303,6 @@ export async function POST(request: NextRequest) {
             parent: targetPostUrn,
           },
         };
-
-        // Only add commentary if provided
-        if (content && content.trim()) {
-          repostBody.commentary = content.trim();
-        }
 
         const repostResponse = await fetch('https://api.linkedin.com/rest/posts', {
           method: 'POST',
