@@ -19,8 +19,12 @@ function isWithinGenerationWindow(): boolean {
 // Only runs between 4 AM and 6 PM EST
 export async function POST(request: NextRequest) {
   try {
-    // Check time window first
-    if (!isWithinGenerationWindow()) {
+    // Check for force parameter (for testing)
+    const { searchParams } = new URL(request.url);
+    const force = searchParams.get('force') === 'true';
+
+    // Check time window first (skip if force=true)
+    if (!force && !isWithinGenerationWindow()) {
       const now = new Date();
       console.log(`Generation skipped - outside window (4 AM - 6 PM EST). Current time: ${now.toISOString()}`);
       return NextResponse.json({
