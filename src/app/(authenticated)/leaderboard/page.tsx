@@ -439,7 +439,7 @@ export default function LeaderboardPage() {
 
                                       {/* Content */}
                                       <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-brand-navy-800 line-clamp-2">
+                                        <p className="text-sm text-brand-navy-800 line-clamp-6">
                                           {post.content}
                                         </p>
                                         <div className="flex items-center gap-3 mt-1">
