@@ -545,6 +545,8 @@ export default function AnalyticsPage() {
                         stroke="#000000"
                         strokeWidth={2}
                         fill="url(#colorX)"
+                        dot={{ fill: '#000000', strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6 }}
                       />
                     )}
                     {(platform === 'all' || platform === 'linkedin') && (
@@ -555,6 +557,8 @@ export default function AnalyticsPage() {
                         stroke="#0A66C2"
                         strokeWidth={2}
                         fill="url(#colorLinkedin)"
+                        dot={{ fill: '#0A66C2', strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6 }}
                       />
                     )}
                   </AreaChart>
