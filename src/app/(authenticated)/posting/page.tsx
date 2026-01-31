@@ -142,20 +142,20 @@ export default function PostingPage() {
 
     if (!recentError && recentData) {
       setRecentPosts(recentData);
-      // Fetch metrics for X posts (recent only for display)
-      const xPosts = recentData.filter(p => p.channel === 'x' && p.external_id);
-      if (xPosts.length > 0) {
-        fetchMetrics(xPosts.map(p => p.external_id));
-      }
-      // Fetch metrics for LinkedIn posts (recent only for display)
-      const linkedinPosts = recentData.filter(p => p.channel === 'linkedin' && p.external_id);
-      if (linkedinPosts.length > 0) {
-        fetchLinkedInMetrics(linkedinPosts.map(p => p.external_id));
-      }
     }
 
     if (!allError && allData) {
       setAllPosts(allData);
+      // Fetch metrics for ALL posts (for accurate leaderboard)
+      const xPosts = allData.filter(p => p.channel === 'x' && p.external_id);
+      if (xPosts.length > 0) {
+        fetchMetrics(xPosts.map(p => p.external_id));
+      }
+      // Fetch metrics for ALL LinkedIn posts
+      const linkedinPosts = allData.filter(p => p.channel === 'linkedin' && p.external_id);
+      if (linkedinPosts.length > 0) {
+        fetchLinkedInMetrics(linkedinPosts.map(p => p.external_id));
+      }
     }
 
     setLoadingPosts(false);
