@@ -138,7 +138,16 @@ export default function ChannelPage() {
 
       setCampaigns(campaignsData || []);
 
-      // Fetch all posts from active campaigns
+      // If no campaigns for this channel, show empty state
+      if (!campaignsData || campaignsData.length === 0) {
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      const campaignIds = campaignsData.map(c => c.id);
+
+      // Fetch posts only from this channel's campaigns
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
@@ -160,6 +169,7 @@ export default function ChannelPage() {
             is_active
           )
         `)
+        .in('campaign_id', campaignIds)
         .eq('campaigns.is_active', true)
         .order('created_at', { ascending: false });
 
