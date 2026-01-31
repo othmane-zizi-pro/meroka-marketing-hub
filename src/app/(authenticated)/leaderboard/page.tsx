@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  TrendingUp,
 } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
@@ -61,7 +62,7 @@ interface LeaderboardEntry {
 }
 
 export default function LeaderboardPage() {
-  const [period, setPeriod] = useState<TimePeriod>('30d');
+  const [period, setPeriod] = useState<TimePeriod>('7d');
   const [platform, setPlatform] = useState<Platform>('all');
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
@@ -239,6 +240,23 @@ export default function LeaderboardPage() {
     return 'text-brand-navy-400';
   };
 
+  const getTopPosts = (limit: number = 5) => {
+    return posts
+      .map(post => {
+        const impressions = post.channel === 'x'
+          ? (postMetrics[post.external_id] as XMetrics)?.impressions || 0
+          : (linkedinMetrics[post.external_id] as LinkedInMetrics)?.impressions || 0;
+        const likes = post.channel === 'x'
+          ? (postMetrics[post.external_id] as XMetrics)?.likes || 0
+          : (linkedinMetrics[post.external_id] as LinkedInMetrics)?.likes || 0;
+        return { ...post, impressions, likes };
+      })
+      .sort((a, b) => b.impressions - a.impressions)
+      .slice(0, limit);
+  };
+
+  const topPosts = getTopPosts();
+
   return (
     <div className="flex flex-col h-full">
       <Header
@@ -329,17 +347,107 @@ export default function LeaderboardPage() {
             <div className="flex items-center justify-center py-24">
               <Loader2 className="h-8 w-8 animate-spin text-brand-brown" />
             </div>
-          ) : leaderboard.length === 0 ? (
+          ) : posts.length === 0 ? (
             <Card className="border-brand-neutral-100">
               <CardContent className="py-12">
                 <div className="flex flex-col items-center justify-center text-brand-navy-400">
                   <Trophy className="h-12 w-12 mb-3 opacity-50" />
-                  <p className="text-sm">No contributors found for the selected filters.</p>
+                  <p className="text-sm">No posts found for the selected filters.</p>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <Card className="border-brand-neutral-100">
+            <>
+              {/* Top Posts Section */}
+              <Card className="border-brand-neutral-100">
+                <CardHeader>
+                  <CardTitle className="text-brand-navy-900 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-brand-brown" />
+                    Top Posts
+                    <span className="text-sm font-normal text-brand-navy-500">
+                      ({getPeriodLabel(period)}{platform !== 'all' ? ` - ${platform === 'x' ? 'X' : 'LinkedIn'}` : ''})
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {topPosts.map((post, index) => (
+                      <div
+                        key={post.id}
+                        className="flex items-start gap-3 p-3 rounded-lg border border-brand-neutral-100 hover:bg-brand-neutral-50 transition-colors"
+                      >
+                        {/* Rank */}
+                        <div className="flex-shrink-0 w-8 flex justify-center pt-1">
+                          {index < 3 ? (
+                            <Medal className={cn("h-5 w-5", getMedalColor(index))} />
+                          ) : (
+                            <span className="w-5 h-5 flex items-center justify-center text-sm font-medium text-brand-navy-400">
+                              {index + 1}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Platform Icon */}
+                        <div className={cn(
+                          "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-white",
+                          post.channel === 'x' ? 'bg-black' : 'bg-blue-600'
+                        )}>
+                          {post.channel === 'x' ? (
+                            <XIcon className="h-4 w-4" />
+                          ) : (
+                            <Linkedin className="h-4 w-4" />
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-brand-navy-800 line-clamp-3">
+                            {post.content}
+                          </p>
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="text-xs font-medium text-brand-navy-600">
+                              {post.author_name}
+                            </span>
+                            <span className="text-xs text-brand-navy-400">
+                              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="flex items-center gap-4 text-sm flex-shrink-0">
+                          <div className="flex items-center gap-1 text-brand-navy-500">
+                            <Eye className="h-4 w-4" />
+                            <span className="font-medium">{formatNumber(post.impressions)}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-brand-navy-500">
+                            <Heart className="h-4 w-4" />
+                            <span className="font-medium">{formatNumber(post.likes)}</span>
+                          </div>
+                        </div>
+
+                        {/* External Link */}
+                        {post.external_url && (
+                          <a
+                            href={post.external_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-shrink-0 p-2 rounded-lg hover:bg-brand-neutral-100 transition-colors"
+                          >
+                            <ExternalLink className="h-4 w-4 text-brand-navy-400" />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Separator */}
+              <div className="border-t border-brand-neutral-200 my-6" />
+
+              {/* Top Contributors Section */}
+              <Card className="border-brand-neutral-100">
               <CardHeader>
                 <CardTitle className="text-brand-navy-900 flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-brand-brown" />
@@ -478,7 +586,8 @@ export default function LeaderboardPage() {
                     })}
                   </div>
                 </CardContent>
-            </Card>
+              </Card>
+            </>
           )}
         </div>
       </div>
