@@ -64,10 +64,12 @@ export default function ChannelPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<string>('all');
   const [selectedAuthor, setSelectedAuthor] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const POSTS_PER_PAGE = 25;
 
   const title = channelNames[channel] || 'Channel';
   const description = channelDescriptions[channel] || '';
@@ -244,6 +246,13 @@ export default function ChannelPage() {
     ? campaignFilteredPosts.filter(p => p.author_email === selectedAuthor)
     : campaignFilteredPosts;
 
+  // Pagination
+  const totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE);
+  const paginatedPosts = filteredPosts.slice(
+    (currentPage - 1) * POSTS_PER_PAGE,
+    currentPage * POSTS_PER_PAGE
+  );
+
   // Get top 3 posts by likes for podium (from campaign filtered posts, not author filtered)
   const topPosts = [...campaignFilteredPosts]
     .sort((a, b) => b.likes_count - a.likes_count)
@@ -286,6 +295,7 @@ export default function ChannelPage() {
                     onClick={() => {
                       setSelectedCampaign('all');
                       setSelectedAuthor('all');
+                      setCurrentPage(1);
                     }}
                     className={cn(
                       "px-4 py-2 rounded-full text-sm font-medium transition-colors",
@@ -302,6 +312,7 @@ export default function ChannelPage() {
                       onClick={() => {
                         setSelectedCampaign(campaign.id);
                         setSelectedAuthor('all');
+                        setCurrentPage(1);
                       }}
                       className={cn(
                         "px-4 py-2 rounded-full text-sm font-medium transition-colors",
@@ -347,7 +358,10 @@ export default function ChannelPage() {
                     <span className="text-sm font-medium text-brand-navy-700">Filter by Employee:</span>
                     <select
                       value={selectedAuthor}
-                      onChange={(e) => setSelectedAuthor(e.target.value)}
+                      onChange={(e) => {
+                        setSelectedAuthor(e.target.value);
+                        setCurrentPage(1);
+                      }}
                       className="px-3 py-2 text-sm font-medium border border-brand-neutral-200 rounded-lg bg-white text-brand-navy-600 focus:outline-none focus:ring-2 focus:ring-brand-brown/50"
                     >
                       <option value="all">All Employees</option>
@@ -370,7 +384,7 @@ export default function ChannelPage() {
                       {filteredPosts.length} post{filteredPosts.length !== 1 ? 's' : ''}
                     </span>
                   </div>
-                  {filteredPosts.map(post => (
+                  {paginatedPosts.map(post => (
                     <EmployeePostCard
                       key={post.id}
                       post={post}
@@ -387,6 +401,44 @@ export default function ChannelPage() {
                       )}
                     />
                   ))}
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-6 border-t border-brand-neutral-100 mt-6">
+                      <span className="text-sm text-brand-navy-500">
+                        Showing {(currentPage - 1) * POSTS_PER_PAGE + 1}-{Math.min(currentPage * POSTS_PER_PAGE, filteredPosts.length)} of {filteredPosts.length} posts
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className={cn(
+                            "px-4 py-2 text-sm font-medium rounded-lg border transition-colors",
+                            currentPage === 1
+                              ? "border-brand-neutral-200 text-brand-navy-300 cursor-not-allowed"
+                              : "border-brand-neutral-200 text-brand-navy-600 hover:bg-brand-neutral-50"
+                          )}
+                        >
+                          Previous
+                        </button>
+                        <span className="text-sm text-brand-navy-600 px-2">
+                          Page {currentPage} of {totalPages}
+                        </span>
+                        <button
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className={cn(
+                            "px-4 py-2 text-sm font-medium rounded-lg border transition-colors",
+                            currentPage === totalPages
+                              ? "border-brand-neutral-200 text-brand-navy-300 cursor-not-allowed"
+                              : "border-brand-neutral-200 text-brand-navy-600 hover:bg-brand-neutral-50"
+                          )}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
