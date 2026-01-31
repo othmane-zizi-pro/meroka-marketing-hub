@@ -36,16 +36,7 @@ export async function GET(request: NextRequest) {
     // Build query for random campaign posts
     let query = supabase
       .from('post_drafts')
-      .select(`
-        *,
-        inspiration:social_posts!inspiration_post_id (
-          id,
-          content,
-          external_url,
-          author_name,
-          channel
-        )
-      `)
+      .select('*')
       .in('campaign_id', campaignIds)
       .order('created_at', { ascending: false });
 
@@ -64,23 +55,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 });
     }
 
-    // For each post, fetch its edit history
-    const postsWithHistory = await Promise.all(
+    // For each post, fetch its edit history and inspiration
+    const postsWithData = await Promise.all(
       (posts || []).map(async (post) => {
-        const { data: editHistory } = await supabase
-          .from('post_edit_history')
-          .select('*')
-          .eq('post_draft_id', post.id)
-          .order('created_at', { ascending: false });
+        const [editHistoryResult, inspirationResult] = await Promise.all([
+          supabase
+            .from('post_edit_history')
+            .select('*')
+            .eq('post_draft_id', post.id)
+            .order('created_at', { ascending: false }),
+          post.inspiration_post_id
+            ? supabase
+                .from('social_posts')
+                .select('id, content, external_url, author_name, channel')
+                .eq('id', post.inspiration_post_id)
+                .single()
+            : Promise.resolve({ data: null }),
+        ]);
 
         return {
           ...post,
-          edit_history: editHistory || [],
+          edit_history: editHistoryResult.data || [],
+          inspiration: inspirationResult.data || null,
         };
       })
     );
 
-    return NextResponse.json({ posts: postsWithHistory });
+    return NextResponse.json({ posts: postsWithData });
   } catch (error) {
     console.error('Error in GET /api/random/posts:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
