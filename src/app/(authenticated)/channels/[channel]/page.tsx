@@ -305,7 +305,7 @@ export default function ChannelPage() {
     .sort((a, b) => b.likes_count - a.likes_count)
     .slice(0, 3);
 
-  if (channel !== 'linkedin') {
+  if (channel !== 'linkedin' && channel !== 'twitter') {
     return (
       <div className="flex flex-col h-full">
         <Header title={title} subtitle={description} />
