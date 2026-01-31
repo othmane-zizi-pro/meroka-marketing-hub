@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
 // Check if current time is within allowed generation window (4 AM - 6 PM EST)
 function isWithinGenerationWindow(): boolean {
@@ -168,65 +169,51 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Generate content from an inspiration post using OpenAI directly
+// Generate content from an inspiration post using LLM Council Lambda
 async function generateContentFromInspiration(
   inspirationContent: string,
   platform: string
 ): Promise<string | null> {
-  const openaiApiKey = process.env.OPENAI_API_KEY;
-
-  if (!openaiApiKey) {
-    console.error('OPENAI_API_KEY not configured');
-    return null;
-  }
-
   try {
-    console.log(`Generating ${platform} post with OpenAI...`);
+    console.log(`Calling LLM Council for ${platform} post...`);
 
-    const platformName = platform === 'linkedin' ? 'LinkedIn' : 'X/Twitter';
-    const charLimit = platform === 'linkedin' ? '100-500 characters' : 'under 280 characters';
-
-    const prompt = `Create a new ${platformName} post inspired by the following content.
-
-The new post should:
-- Cover a similar topic or theme but with a fresh, unique perspective
-- Match the tone appropriate for ${platformName} (${platform === 'linkedin' ? 'professional, insightful, thought-provoking' : 'concise, engaging, punchy'})
-- Be completely original, not a rephrasing of the inspiration
-- Be ${charLimit}
-- Be ready to post as-is (no hashtags unless natural, no emojis unless fitting)
-
-Inspiration content:
-"${inspirationContent}"
-
-Generate ONLY the post content. No explanations, no quotes around it, no meta-commentary.`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`,
+    const lambda = new LambdaClient({
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
       },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 500,
-        temperature: 0.8,
-      }),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('OpenAI API error:', response.status, error);
+    const payload = JSON.stringify({
+      inspiration: inspirationContent,
+      platform,
+    });
+
+    const command = new InvokeCommand({
+      FunctionName: 'llm-council',
+      Payload: Buffer.from(payload),
+    });
+
+    const response = await lambda.send(command);
+
+    if (response.StatusCode !== 200) {
+      console.error('Lambda invocation failed:', response.StatusCode);
       return null;
     }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content?.trim();
+    const responsePayload = JSON.parse(Buffer.from(response.Payload!).toString());
 
-    console.log(`Generated: "${content?.substring(0, 50)}..."`);
-    return content || null;
+    // The Lambda returns { statusCode, body } where body is a JSON string
+    const result = typeof responsePayload.body === 'string'
+      ? JSON.parse(responsePayload.body)
+      : responsePayload.body || responsePayload;
+
+    console.log(`LLM Council selected: ${result.source} - "${result.reason || 'No reason provided'}"`);
+
+    return result.content || null;
   } catch (error) {
-    console.error('Error calling OpenAI:', error);
+    console.error('Error calling LLM Council:', error);
     return null;
   }
 }
