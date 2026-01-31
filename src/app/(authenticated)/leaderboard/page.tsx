@@ -552,7 +552,7 @@ export default function LeaderboardPage() {
                 <CardHeader>
                   <CardTitle className="text-brand-navy-900 flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-brand-brown" />
-                    Most Upvoted
+                    Top Posts
                     <span className="text-sm font-normal text-brand-navy-500">
                       ({getPeriodLabel(period)}{platform !== 'all' ? ` - ${platform === 'x' ? 'X' : 'LinkedIn'}` : ''})
                     </span>

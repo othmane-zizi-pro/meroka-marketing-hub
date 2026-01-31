@@ -115,9 +115,9 @@ export default function ChannelPage() {
   const title = channelNames[channel] || 'Channel';
   const description = channelDescriptions[channel] || '';
 
-  // Check if selected campaign is Random
+  // Check if selected campaign is Random (check both type and name for robustness)
   const selectedCampaignData = campaigns.find(c => c.id === selectedCampaign);
-  const isRandomCampaign = selectedCampaignData?.type === 'random';
+  const isRandomCampaign = selectedCampaignData?.type === 'random' || selectedCampaignData?.name === 'Random';
 
   useEffect(() => {
     if (channel === 'linkedin' || channel === 'twitter') {
