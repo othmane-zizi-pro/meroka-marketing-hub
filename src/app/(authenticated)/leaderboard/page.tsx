@@ -213,9 +213,19 @@ export default function LeaderboardPage() {
 
   const leaderboard = calculateLeaderboard();
 
-  // Get posts for a specific author
+  // Get posts for a specific author, sorted by impressions
   const getAuthorPosts = (authorEmail: string) => {
-    return posts.filter(p => p.author_email === authorEmail);
+    return posts
+      .filter(p => p.author_email === authorEmail)
+      .sort((a, b) => {
+        const aImpressions = a.channel === 'x'
+          ? (postMetrics[a.external_id] as XMetrics)?.impressions || 0
+          : (linkedinMetrics[a.external_id] as LinkedInMetrics)?.impressions || 0;
+        const bImpressions = b.channel === 'x'
+          ? (postMetrics[b.external_id] as XMetrics)?.impressions || 0
+          : (linkedinMetrics[b.external_id] as LinkedInMetrics)?.impressions || 0;
+        return bImpressions - aImpressions;
+      });
   };
 
   const toggleExpanded = (authorEmail: string) => {
