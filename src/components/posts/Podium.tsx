@@ -37,7 +37,7 @@ export function Podium({ posts }: PodiumProps) {
     <div className="bg-gradient-to-br from-brand-navy-800 to-brand-navy-900 rounded-2xl p-6 mb-8">
       <div className="flex items-center gap-2 mb-6">
         <Trophy className="h-6 w-6 text-yellow-400" />
-        <h2 className="text-xl font-bold text-white">Top Posts This Week</h2>
+        <h2 className="text-xl font-bold text-white">Most Upvoted This Week</h2>
       </div>
 
       <div className="flex items-end justify-center gap-4">

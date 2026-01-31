@@ -16,6 +16,7 @@ import {
   ChevronUp,
   ExternalLink,
   TrendingUp,
+  User,
 } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
@@ -70,6 +71,7 @@ export default function LeaderboardPage() {
   const [linkedinMetrics, setLinkedinMetrics] = useState<Record<string, LinkedInMetrics>>({});
   const [expandedAuthor, setExpandedAuthor] = useState<string | null>(null);
   const [topPostsPage, setTopPostsPage] = useState(1);
+  const [selectedAuthor, setSelectedAuthor] = useState<string>('all');
   const POSTS_PER_PAGE = 5;
 
   const fetchPosts = async () => {
@@ -156,6 +158,7 @@ export default function LeaderboardPage() {
   useEffect(() => {
     fetchPosts();
     setTopPostsPage(1); // Reset pagination when filters change
+    setSelectedAuthor('all'); // Reset author filter when filters change
   }, [period, platform]);
 
   const formatNumber = (num: number) => {
@@ -243,8 +246,22 @@ export default function LeaderboardPage() {
     return 'text-brand-navy-400';
   };
 
+  // Get unique authors for filter dropdown
+  const getUniqueAuthors = () => {
+    const authorMap = new Map<string, string>();
+    posts.forEach(post => {
+      if (!authorMap.has(post.author_email)) {
+        authorMap.set(post.author_email, post.author_name);
+      }
+    });
+    return Array.from(authorMap.entries()).map(([email, name]) => ({ email, name }));
+  };
+
+  const uniqueAuthors = getUniqueAuthors();
+
   const getAllPostsSorted = () => {
     return posts
+      .filter(post => selectedAuthor === 'all' || post.author_email === selectedAuthor)
       .map(post => {
         const impressions = post.channel === 'x'
           ? (postMetrics[post.external_id] as XMetrics)?.impressions || 0
@@ -336,6 +353,26 @@ export default function LeaderboardPage() {
                   LinkedIn
                 </button>
               </div>
+            </div>
+
+            {/* Author Filter */}
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-brand-navy-600" />
+              <select
+                value={selectedAuthor}
+                onChange={(e) => {
+                  setSelectedAuthor(e.target.value);
+                  setTopPostsPage(1);
+                }}
+                className="px-3 py-2 text-sm font-medium border border-brand-neutral-200 rounded-lg bg-white text-brand-navy-600 focus:outline-none focus:ring-2 focus:ring-brand-brown/50"
+              >
+                <option value="all">All Users</option>
+                {uniqueAuthors.map((author) => (
+                  <option key={author.email} value={author.email}>
+                    {author.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Refresh Button */}
@@ -515,7 +552,7 @@ export default function LeaderboardPage() {
                 <CardHeader>
                   <CardTitle className="text-brand-navy-900 flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-brand-brown" />
-                    Top Posts
+                    Most Upvoted
                     <span className="text-sm font-normal text-brand-navy-500">
                       ({getPeriodLabel(period)}{platform !== 'all' ? ` - ${platform === 'x' ? 'X' : 'LinkedIn'}` : ''})
                     </span>

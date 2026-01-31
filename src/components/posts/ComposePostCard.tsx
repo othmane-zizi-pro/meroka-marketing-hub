@@ -53,7 +53,7 @@ export function ComposePostCard({ campaignId, campaignName, onPostCreated }: Com
       <div className="p-4 border-b border-brand-neutral-100">
         <h3 className="font-medium text-brand-navy-900">Compose Post</h3>
         <p className="text-sm text-brand-navy-500 mt-0.5">
-          Share your thoughts for {campaignName}
+          Share a post for {campaignName}
         </p>
       </div>
 
