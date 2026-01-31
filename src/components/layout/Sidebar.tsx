@@ -30,7 +30,7 @@ const navigation = [
   { name: 'Scheduled', href: '/scheduled', icon: Clock },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Activity Feed', href: '/activity', icon: Activity },
-  { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
+  { name: 'Contributors', href: '/leaderboard', icon: Trophy },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 

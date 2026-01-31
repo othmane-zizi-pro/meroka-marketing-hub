@@ -218,7 +218,7 @@ export default function LeaderboardPage() {
   return (
     <div className="flex flex-col h-full">
       <Header
-        title="Leaderboard"
+        title="Contributors"
         subtitle="Top contributors ranked by performance"
       />
 
