@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
             'Authorization': `Bearer ${connection.access_token}`,
             'Content-Type': 'application/json',
             'X-Restli-Protocol-Version': '2.0.0',
-            'LinkedIn-Version': '202501',
+            'LinkedIn-Version': '202411',
           },
           body: JSON.stringify({
             root: targetPostUrn,
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
             'Authorization': `Bearer ${connection.access_token}`,
             'Content-Type': 'application/json',
             'X-Restli-Protocol-Version': '2.0.0',
-            'LinkedIn-Version': '202501',
+            'LinkedIn-Version': '202411',
           },
           body: JSON.stringify({
             actor: `urn:li:organization:${organizationId}`,
@@ -313,7 +313,7 @@ export async function POST(request: NextRequest) {
             'Authorization': `Bearer ${connection.access_token}`,
             'Content-Type': 'application/json',
             'X-Restli-Protocol-Version': '2.0.0',
-            'LinkedIn-Version': '202601',
+            'LinkedIn-Version': '202411',
           },
           body: JSON.stringify(repostBody),
         });
@@ -405,7 +405,7 @@ export async function POST(request: NextRequest) {
             'Authorization': `Bearer ${connection.access_token}`,
             'Content-Type': 'application/json',
             'X-Restli-Protocol-Version': '2.0.0',
-            'LinkedIn-Version': '202401',
+            'LinkedIn-Version': '202411',
           },
           body: JSON.stringify({
             initializeUploadRequest: {
@@ -455,7 +455,7 @@ export async function POST(request: NextRequest) {
             'Authorization': `Bearer ${connection.access_token}`,
             'Content-Type': 'application/json',
             'X-Restli-Protocol-Version': '2.0.0',
-            'LinkedIn-Version': '202401',
+            'LinkedIn-Version': '202411',
           },
           body: JSON.stringify({
             finalizeUploadRequest: {
@@ -493,7 +493,7 @@ export async function POST(request: NextRequest) {
             'Authorization': `Bearer ${connection.access_token}`,
             'Content-Type': 'application/json',
             'X-Restli-Protocol-Version': '2.0.0',
-            'LinkedIn-Version': '202601',
+            'LinkedIn-Version': '202411',
           },
           body: JSON.stringify({
             initializeUploadRequest: {
@@ -561,7 +561,7 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${connection.access_token}`,
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202601',
+        'LinkedIn-Version': '202411',
       },
       body: JSON.stringify(postBody),
     });
