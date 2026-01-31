@@ -15,9 +15,20 @@ import {
   TrendingUp,
   Linkedin,
   RefreshCw,
+  Camera,
 } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 type TimePeriod = '7d' | '30d' | 'all';
 type Platform = 'all' | 'x' | 'linkedin';
@@ -56,13 +67,23 @@ interface FollowerData {
   combined: number;
 }
 
+interface FollowerHistoryPoint {
+  date: string;
+  x?: number;
+  linkedin?: number;
+  total: number;
+}
+
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<TimePeriod>('30d');
   const [platform, setPlatform] = useState<Platform>('all');
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [followers, setFollowers] = useState<FollowerData | null>(null);
+  const [followerHistory, setFollowerHistory] = useState<FollowerHistoryPoint[]>([]);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [loadingFollowers, setLoadingFollowers] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [takingSnapshot, setTakingSnapshot] = useState(false);
 
   const fetchSummary = async () => {
     setLoadingSummary(true);
@@ -94,8 +115,43 @@ export default function AnalyticsPage() {
     }
   };
 
+  const fetchFollowerHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const days = period === '7d' ? 7 : period === '30d' ? 30 : 365;
+      const response = await fetch(`/api/analytics/followers/history?days=${days}`);
+      if (response.ok) {
+        const data = await response.json();
+        setFollowerHistory(data.history || []);
+      }
+    } catch (error) {
+      console.error('Error fetching follower history:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const takeSnapshot = async () => {
+    setTakingSnapshot(true);
+    try {
+      const response = await fetch('/api/analytics/followers/snapshot', { method: 'POST' });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Snapshot taken:', data);
+        // Refresh follower data after snapshot
+        fetchFollowers();
+        fetchFollowerHistory();
+      }
+    } catch (error) {
+      console.error('Error taking snapshot:', error);
+    } finally {
+      setTakingSnapshot(false);
+    }
+  };
+
   useEffect(() => {
     fetchSummary();
+    fetchFollowerHistory();
   }, [period, platform]);
 
   useEffect(() => {
@@ -105,6 +161,13 @@ export default function AnalyticsPage() {
   const refreshAll = () => {
     fetchSummary();
     fetchFollowers();
+    fetchFollowerHistory();
+  };
+
+  // Format date for chart display
+  const formatChartDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const formatNumber = (num: number) => {
@@ -202,16 +265,27 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            {/* Refresh Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refreshAll}
-              disabled={loadingSummary || loadingFollowers}
-            >
-              <RefreshCw className={cn("h-4 w-4 mr-2", (loadingSummary || loadingFollowers) && "animate-spin")} />
-              Refresh
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={takeSnapshot}
+                disabled={takingSnapshot}
+              >
+                <Camera className={cn("h-4 w-4 mr-2", takingSnapshot && "animate-pulse")} />
+                {takingSnapshot ? 'Saving...' : 'Take Snapshot'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refreshAll}
+                disabled={loadingSummary || loadingFollowers || loadingHistory}
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-2", (loadingSummary || loadingFollowers || loadingHistory) && "animate-spin")} />
+                Refresh
+              </Button>
+            </div>
           </div>
 
           {/* Follower Cards */}
@@ -295,6 +369,96 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Follower Growth Chart */}
+          <Card className="border-brand-neutral-100">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-brand-brown" />
+                Follower Growth
+                <span className="text-sm font-normal text-brand-navy-500">
+                  ({getPeriodLabel(period)})
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingHistory ? (
+                <div className="flex items-center justify-center h-64">
+                  <Loader2 className="h-8 w-8 animate-spin text-brand-brown" />
+                </div>
+              ) : followerHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-brand-navy-400">
+                  <Camera className="h-12 w-12 mb-3 opacity-50" />
+                  <p className="text-sm">No historical data available yet.</p>
+                  <p className="text-xs mt-1">Click &quot;Take Snapshot&quot; to start tracking follower growth.</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={followerHistory} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={formatChartDate}
+                      stroke="#6B7280"
+                      fontSize={12}
+                    />
+                    <YAxis
+                      stroke="#6B7280"
+                      fontSize={12}
+                      tickFormatter={(value) => formatNumber(value)}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                      }}
+                      formatter={(value, name) => [
+                        formatNumber(Number(value) || 0),
+                        name === 'total' ? 'Total' : name === 'x' ? 'X' : 'LinkedIn'
+                      ]}
+                      labelFormatter={(label) => formatChartDate(String(label))}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: '12px' }}
+                      formatter={(value) => value === 'total' ? 'Total' : value === 'x' ? 'X' : 'LinkedIn'}
+                    />
+                    {platform === 'all' && (
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        stroke="#8B5A2B"
+                        strokeWidth={2}
+                        dot={{ fill: '#8B5A2B', strokeWidth: 2, r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    )}
+                    {(platform === 'all' || platform === 'x') && (
+                      <Line
+                        type="monotone"
+                        dataKey="x"
+                        stroke="#000000"
+                        strokeWidth={2}
+                        dot={{ fill: '#000000', strokeWidth: 2, r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    )}
+                    {(platform === 'all' || platform === 'linkedin') && (
+                      <Line
+                        type="monotone"
+                        dataKey="linkedin"
+                        stroke="#0A66C2"
+                        strokeWidth={2}
+                        dot={{ fill: '#0A66C2', strokeWidth: 2, r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Period Label */}
           <div className="flex items-center gap-2">

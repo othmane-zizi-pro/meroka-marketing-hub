@@ -64,41 +64,67 @@ export async function GET(request: NextRequest) {
       if (connection && connection.organization_id) {
         const orgUrn = `urn:li:organization:${connection.organization_id}`;
         const encodedOrg = encodeURIComponent(orgUrn);
+        let followerCount = 0;
 
-        // Fetch follower statistics
-        const followerUrl = `https://api.linkedin.com/rest/organizationalEntityFollowerStatistics?q=organizationalEntity&organizationalEntity=${encodedOrg}`;
+        // Try v2 API first (networkSizes)
+        try {
+          const networkSizesUrl = `https://api.linkedin.com/v2/networkSizes/${orgUrn}?edgeType=CompanyFollowedByMember`;
+          const networkResponse = await fetch(networkSizesUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${connection.access_token}`,
+              'X-Restli-Protocol-Version': '2.0.0',
+            },
+          });
 
-        const response = await fetch(followerUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${connection.access_token}`,
-            'X-Restli-Protocol-Version': '2.0.0',
-            'LinkedIn-Version': '202601',
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.elements && data.elements.length > 0) {
-            const followerStats = data.elements[0];
-            // Total followers is in followerCounts.organicFollowerCount + paidFollowerCount
-            const organicFollowers = followerStats.followerCounts?.organicFollowerCount || 0;
-            const paidFollowers = followerStats.followerCounts?.paidFollowerCount || 0;
-            const totalFollowers = organicFollowers + paidFollowers;
-
-            results.linkedin = {
-              followers: totalFollowers,
-              organizationName: connection.organization_name || 'Organization',
-            };
-            results.combined += results.linkedin.followers;
+          if (networkResponse.ok) {
+            const networkData = await networkResponse.json();
+            followerCount = networkData.firstDegreeSize || 0;
           }
-        } else {
-          const errorText = await response.text();
-          console.error('LinkedIn follower API error:', response.status, errorText);
+        } catch (e) {
+          console.log('networkSizes API not available, trying followerStatistics');
         }
+
+        // Fallback to REST API if v2 didn't work
+        if (followerCount === 0) {
+          const followerUrl = `https://api.linkedin.com/rest/organizationalEntityFollowerStatistics?q=organizationalEntity&organizationalEntity=${encodedOrg}`;
+          const response = await fetch(followerUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${connection.access_token}`,
+              'X-Restli-Protocol-Version': '2.0.0',
+              'LinkedIn-Version': '202601',
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.elements && data.elements.length > 0) {
+              const followerStats = data.elements[0];
+              const organicFollowers = followerStats.followerCounts?.organicFollowerCount || 0;
+              const paidFollowers = followerStats.followerCounts?.paidFollowerCount || 0;
+              followerCount = organicFollowers + paidFollowers;
+            }
+          } else {
+            const errorText = await response.text();
+            console.error('LinkedIn follower API error:', response.status, errorText);
+          }
+        }
+
+        // Always set LinkedIn result with org name, even if follower count is 0
+        results.linkedin = {
+          followers: followerCount,
+          organizationName: connection.organization_name || 'Meroka',
+        };
+        results.combined += followerCount;
       }
     } catch (e: any) {
       console.error('Error fetching LinkedIn followers:', e.message);
+      // Still try to show org name if we have connection
+      results.linkedin = {
+        followers: 0,
+        organizationName: 'Meroka',
+      };
     }
 
     return NextResponse.json(results);
