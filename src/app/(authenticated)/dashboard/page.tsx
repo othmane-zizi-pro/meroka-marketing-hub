@@ -1,34 +1,88 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { channelStats } from '@/lib/mock-data';
 import { useUser } from '@/hooks/useUser';
-import { Linkedin, Instagram, ArrowRight, TrendingUp } from 'lucide-react';
+import { Linkedin, Instagram, ArrowRight, TrendingUp, Loader2 } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
+import { createClient } from '@/lib/supabase/client';
 
-const channelIcons = {
+const channelIcons: Record<string, any> = {
   linkedin: Linkedin,
-  twitter: XIcon,
+  x: XIcon,
   instagram: Instagram,
 };
 
-const channelNames = {
+const channelNames: Record<string, string> = {
   linkedin: 'LinkedIn',
-  twitter: 'X',
+  x: 'X',
   instagram: 'Instagram',
 };
 
-const channelColors = {
+const channelColors: Record<string, string> = {
   linkedin: 'bg-brand-navy-600',
-  twitter: 'bg-brand-navy-800',
+  x: 'bg-brand-navy-800',
   instagram: 'bg-gradient-to-br from-brand-brown-dark to-brand-brown',
 };
 
+const channelRoutes: Record<string, string> = {
+  linkedin: '/channels/linkedin',
+  x: '/channels/twitter',
+  instagram: '/channels/instagram',
+};
+
+interface ChannelStats {
+  channel: string;
+  publishedThisWeek: number;
+}
+
 export default function DashboardPage() {
   const { user } = useUser();
+  const [channelStats, setChannelStats] = useState<ChannelStats[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      const supabase = createClient();
+
+      // Calculate date 7 days ago
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+
+      // Fetch posts from last 7 days grouped by channel
+      const { data, error } = await supabase
+        .from('social_posts')
+        .select('channel')
+        .gte('created_at', weekAgo.toISOString());
+
+      if (error) {
+        console.error('Error fetching stats:', error);
+        setLoading(false);
+        return;
+      }
+
+      // Count posts per channel
+      const counts: Record<string, number> = { linkedin: 0, x: 0, instagram: 0 };
+      (data || []).forEach(post => {
+        if (counts[post.channel] !== undefined) {
+          counts[post.channel]++;
+        }
+      });
+
+      setChannelStats([
+        { channel: 'linkedin', publishedThisWeek: counts.linkedin },
+        { channel: 'x', publishedThisWeek: counts.x },
+        { channel: 'instagram', publishedThisWeek: counts.instagram },
+      ]);
+      setLoading(false);
+    }
+
+    fetchStats();
+  }, []);
+
   const totalPublished = channelStats.reduce((sum, ch) => sum + ch.publishedThisWeek, 0);
 
   const firstName = user?.name?.split(' ')[0] || 'there';
@@ -50,7 +104,11 @@ export default function DashboardPage() {
                   <TrendingUp className="h-6 w-6 text-brand-navy-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-brand-navy-900">{totalPublished}</p>
+                  {loading ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-brand-navy-400" />
+                  ) : (
+                    <p className="text-2xl font-bold text-brand-navy-900">{totalPublished}</p>
+                  )}
                   <p className="text-sm text-brand-navy-600">Published This Week</p>
                 </div>
               </div>
@@ -66,6 +124,7 @@ export default function DashboardPage() {
               const Icon = channelIcons[stats.channel];
               const name = channelNames[stats.channel];
               const color = channelColors[stats.channel];
+              const route = channelRoutes[stats.channel];
 
               return (
                 <Card key={stats.channel} className="overflow-hidden border-brand-neutral-100">
@@ -82,10 +141,12 @@ export default function DashboardPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-brand-navy-600">This week</span>
-                        <span className="font-medium text-brand-navy-900">{stats.publishedThisWeek}</span>
+                        <span className="font-medium text-brand-navy-900">
+                          {loading ? '-' : stats.publishedThisWeek}
+                        </span>
                       </div>
                     </div>
-                    <Link href={`/channels/${stats.channel}`}>
+                    <Link href={route}>
                       <Button variant="outline" className="w-full mt-4 gap-2 border-brand-navy-300 text-brand-navy-800 hover:bg-brand-neutral-100">
                         View Posts
                         <ArrowRight className="h-4 w-4" />

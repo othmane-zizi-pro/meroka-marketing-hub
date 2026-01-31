@@ -59,7 +59,7 @@ export function Sidebar() {
         {navigation.map((item, index) => {
           if (item.type === 'separator') {
             return (
-              <div key={`separator-${index}`} className="my-2 border-t border-brand-navy-600/30" />
+              <div key={`separator-${index}`} className="my-2 mx-2 h-px bg-brand-navy-600/50" />
             );
           }
 
