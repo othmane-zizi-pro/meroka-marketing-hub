@@ -77,14 +77,24 @@ export async function POST(request: NextRequest) {
       route = 'direct',
       scheduledFor,
       scheduledTimezone = 'America/New_York',
+      actionType = 'post',
+      targetPostUrn,
     } = body;
-
-    if (!content?.trim()) {
-      return NextResponse.json({ error: 'Content is required' }, { status: 400 });
-    }
 
     if (!channel) {
       return NextResponse.json({ error: 'Channel is required' }, { status: 400 });
+    }
+
+    // Validate based on action type
+    const needsContent = actionType !== 'like';
+    const needsTarget = ['repost', 'comment', 'like'].includes(actionType);
+
+    if (needsContent && !content?.trim()) {
+      return NextResponse.json({ error: 'Content is required' }, { status: 400 });
+    }
+
+    if (needsTarget && !targetPostUrn) {
+      return NextResponse.json({ error: 'Target post URL is required for this action' }, { status: 400 });
     }
 
     if (!['direct', 'proofreading', 'scheduled'].includes(route)) {
@@ -108,7 +118,7 @@ export async function POST(request: NextRequest) {
     const { data: draft, error: insertError } = await supabase
       .from('post_drafts')
       .insert({
-        content: content.trim(),
+        content: content?.trim() || '',
         channel,
         media_url: mediaUrl || null,
         media_type: mediaType || null,
@@ -119,6 +129,8 @@ export async function POST(request: NextRequest) {
         status,
         scheduled_for: route === 'scheduled' ? scheduledFor : null,
         scheduled_timezone: route === 'scheduled' ? scheduledTimezone : null,
+        action_type: actionType,
+        target_post_urn: targetPostUrn || null,
       })
       .select()
       .single();

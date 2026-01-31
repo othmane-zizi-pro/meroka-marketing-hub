@@ -478,6 +478,8 @@ export default function PostingPage() {
             route: selectedRoute,
             scheduledFor,
             scheduledTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            actionType: selectedChannel === 'linkedin' ? selectedLinkedInPostType : selectedPostType,
+            targetPostUrn: selectedChannel === 'linkedin' ? linkedinPostUrn : null,
           }),
         });
 
@@ -496,6 +498,7 @@ export default function PostingPage() {
           setContent('');
           setScheduledDate('');
           setScheduledTime('');
+          setLinkedinPostUrl('');
           removeMedia();
         } else {
           setResult({

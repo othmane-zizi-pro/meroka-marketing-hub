@@ -41,7 +41,10 @@ export async function POST(
       // Call LinkedIn posting API
       const formData = new FormData();
       formData.append('content', contentToPublish);
-      formData.append('actionType', 'post');
+      formData.append('actionType', draft.action_type || 'post');
+      if (draft.target_post_urn) {
+        formData.append('targetPostUrn', draft.target_post_urn);
+      }
       if (draft.media_url) {
         formData.append('mediaUrl', draft.media_url);
         if (draft.media_type) {
