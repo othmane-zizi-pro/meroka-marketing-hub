@@ -177,13 +177,6 @@ export function EmployeePostCard({
     }
   };
 
-  const statusBadge = {
-    pending_review: { label: 'Pending Review', color: 'bg-yellow-100 text-yellow-800' },
-    approved: { label: 'Approved', color: 'bg-green-100 text-green-800' },
-    published: { label: 'Published', color: 'bg-blue-100 text-blue-800' },
-    draft: { label: 'Draft', color: 'bg-gray-100 text-gray-800' },
-  }[post.status] || { label: post.status, color: 'bg-gray-100 text-gray-800' };
-
   return (
     <div className="bg-white rounded-xl border border-brand-neutral-100 shadow-sm overflow-hidden">
       {/* Header */}
@@ -223,9 +216,6 @@ export function EmployeePostCard({
                 <Trash2 className="h-4 w-4" />
               </button>
             )}
-            <span className={cn("px-2 py-1 rounded-full text-xs font-medium", statusBadge.color)}>
-              {statusBadge.label}
-            </span>
           </div>
         </div>
       </div>

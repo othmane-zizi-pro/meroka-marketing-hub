@@ -307,8 +307,9 @@ export default function ChannelPage() {
               </div>
             ) : (
               <>
-                {/* Podium for top 3 */}
-                {topPosts.length >= 3 && (
+                {/* Podium for top 3 - only for Employee Voices campaign */}
+                {topPosts.length >= 3 &&
+                  campaigns.find(c => c.id === selectedCampaign)?.name === 'Employee Voices' && (
                   <Podium posts={topPosts} />
                 )}
 
