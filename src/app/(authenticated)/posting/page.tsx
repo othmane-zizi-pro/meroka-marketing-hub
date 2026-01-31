@@ -277,16 +277,22 @@ export default function PostingPage() {
   // - https://www.linkedin.com/feed/update/urn:li:activity:1234567890/
   // - https://www.linkedin.com/posts/username_activity-1234567890-xxxx
   // - https://www.linkedin.com/posts/username_post-title-activity-1234567890-xxxx
+  // Note: LinkedIn reshare API requires urn:li:share or urn:li:ugcPost, not activity
   const extractLinkedInPostId = (url: string): string | null => {
-    // Match URN-style URLs
-    const urnMatch = url.match(/urn:li:(share|activity|ugcPost):(\d+)/);
-    if (urnMatch) {
-      return `urn:li:${urnMatch[1]}:${urnMatch[2]}`;
+    // Match share or ugcPost URN-style URLs (these work directly)
+    const shareMatch = url.match(/urn:li:(share|ugcPost):(\d+)/);
+    if (shareMatch) {
+      return `urn:li:${shareMatch[1]}:${shareMatch[2]}`;
     }
-    // Match posts-style URLs (activity ID anywhere in the URL)
+    // Match activity URN - convert to share (same ID works)
+    const activityUrnMatch = url.match(/urn:li:activity:(\d+)/);
+    if (activityUrnMatch) {
+      return `urn:li:share:${activityUrnMatch[1]}`;
+    }
+    // Match posts-style URLs (activity ID anywhere in the URL) - use share URN
     const activityMatch = url.match(/activity-(\d+)/);
     if (activityMatch) {
-      return `urn:li:activity:${activityMatch[1]}`;
+      return `urn:li:share:${activityMatch[1]}`;
     }
     return null;
   };
