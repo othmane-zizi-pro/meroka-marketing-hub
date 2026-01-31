@@ -18,11 +18,17 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
+  Pencil,
+  X,
+  Check,
 } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
+import { useUser } from '@/hooks/useUser';
+
+const ADMIN_EMAIL = 'othmane.zizi@meroka.com';
 
 type TimePeriod = '7d' | '30d' | 'all';
 type Platform = 'all' | 'x' | 'linkedin';
@@ -60,6 +66,9 @@ interface LinkedInMetrics {
 const POSTS_PER_PAGE = 10;
 
 export default function ActivityPage() {
+  const { user } = useUser();
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
   const [period, setPeriod] = useState<TimePeriod>('30d');
   const [platform, setPlatform] = useState<Platform>('all');
   const [posts, setPosts] = useState<SocialPost[]>([]);
@@ -67,6 +76,9 @@ export default function ActivityPage() {
   const [postMetrics, setPostMetrics] = useState<Record<string, XMetrics>>({});
   const [linkedinMetrics, setLinkedinMetrics] = useState<Record<string, LinkedInMetrics>>({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingUrl, setEditingUrl] = useState('');
+  const [savingUrl, setSavingUrl] = useState(false);
 
   const fetchPosts = async () => {
     setLoadingPosts(true);
@@ -147,6 +159,46 @@ export default function ActivityPage() {
     } catch (error) {
       console.error('Error fetching LinkedIn metrics:', error);
     }
+  };
+
+  const updatePostUrl = async (postId: string, newUrl: string) => {
+    if (!isAdmin) return;
+
+    setSavingUrl(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('social_posts')
+        .update({ external_url: newUrl })
+        .eq('id', postId);
+
+      if (error) {
+        console.error('Error updating post URL:', error);
+        alert('Failed to update URL');
+      } else {
+        // Update local state
+        setPosts(posts.map(p =>
+          p.id === postId ? { ...p, external_url: newUrl } : p
+        ));
+        setEditingPostId(null);
+        setEditingUrl('');
+      }
+    } catch (error) {
+      console.error('Error updating post URL:', error);
+      alert('Failed to update URL');
+    } finally {
+      setSavingUrl(false);
+    }
+  };
+
+  const startEditing = (post: SocialPost) => {
+    setEditingPostId(post.id);
+    setEditingUrl(post.external_url || '');
+  };
+
+  const cancelEditing = () => {
+    setEditingPostId(null);
+    setEditingUrl('');
   };
 
   useEffect(() => {
@@ -365,17 +417,62 @@ export default function ActivityPage() {
                           </div>
                         </div>
 
-                        {/* External Link */}
-                        {post.external_url && (
-                          <a
-                            href={post.external_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-shrink-0 p-2 rounded-md hover:bg-brand-neutral-100 text-brand-navy-400 hover:text-brand-navy-600 transition-colors"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        )}
+                        {/* External Link & Edit */}
+                        <div className="flex-shrink-0 flex items-center gap-1">
+                          {editingPostId === post.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={editingUrl}
+                                onChange={(e) => setEditingUrl(e.target.value)}
+                                className="w-64 px-2 py-1 text-xs border border-brand-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-brown"
+                                placeholder="Enter new URL"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => updatePostUrl(post.id, editingUrl)}
+                                disabled={savingUrl}
+                                className="p-1.5 rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition-colors disabled:opacity-50"
+                              >
+                                {savingUrl ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Check className="h-4 w-4" />
+                                )}
+                              </button>
+                              <button
+                                onClick={cancelEditing}
+                                disabled={savingUrl}
+                                className="p-1.5 rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors disabled:opacity-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => startEditing(post)}
+                                  className="p-2 rounded-md hover:bg-brand-neutral-100 text-brand-navy-400 hover:text-brand-navy-600 transition-colors"
+                                  title="Edit URL"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                              )}
+                              {post.external_url && (
+                                <a
+                                  href={post.external_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-2 rounded-md hover:bg-brand-neutral-100 text-brand-navy-400 hover:text-brand-navy-600 transition-colors"
+                                  title="Open post"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

@@ -20,18 +20,24 @@ import { Avatar } from '@/components/ui/avatar';
 import { XIcon } from '@/components/ui/icons';
 import { useUser, signOut } from '@/hooks/useUser';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Activity Feed', href: '/activity', icon: Activity },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'LinkedIn', href: '/channels/linkedin', icon: Linkedin },
-  { name: 'X', href: '/channels/twitter', icon: XIcon },
-  { name: 'Instagram', href: '/channels/instagram', icon: Instagram },
-  { name: 'Posting', href: '/posting', icon: Send },
-  { name: 'Proofreading', href: '/proofreading', icon: FileEdit },
-  { name: 'Scheduled', href: '/scheduled', icon: Clock },
-  { name: 'Top Contributors', href: '/leaderboard', icon: Trophy },
-  { name: 'Settings', href: '/settings', icon: Settings },
+type NavItem = { type: 'link'; name: string; href: string; icon: any } | { type: 'separator' };
+
+const navigation: NavItem[] = [
+  { type: 'link', name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { type: 'link', name: 'Activity Feed', href: '/activity', icon: Activity },
+  { type: 'link', name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { type: 'separator' },
+  { type: 'link', name: 'LinkedIn', href: '/channels/linkedin', icon: Linkedin },
+  { type: 'link', name: 'X', href: '/channels/twitter', icon: XIcon },
+  { type: 'link', name: 'Instagram', href: '/channels/instagram', icon: Instagram },
+  { type: 'separator' },
+  { type: 'link', name: 'Posting', href: '/posting', icon: Send },
+  { type: 'link', name: 'Proofreading', href: '/proofreading', icon: FileEdit },
+  { type: 'link', name: 'Scheduled', href: '/scheduled', icon: Clock },
+  { type: 'separator' },
+  { type: 'link', name: 'Top Contributors', href: '/leaderboard', icon: Trophy },
+  { type: 'separator' },
+  { type: 'link', name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {
@@ -50,7 +56,13 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navigation.map((item) => {
+        {navigation.map((item, index) => {
+          if (item.type === 'separator') {
+            return (
+              <div key={`separator-${index}`} className="my-2 border-t border-brand-navy-600/30" />
+            );
+          }
+
           const isActive = pathname === item.href ||
             (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
