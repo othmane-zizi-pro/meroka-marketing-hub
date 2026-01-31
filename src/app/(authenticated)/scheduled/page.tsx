@@ -83,12 +83,12 @@ export default function ScheduledPage() {
       );
       setDrafts(sorted);
 
-      // Sort published by published_at descending (most recent first), limit to 5
+      // Sort published by published_at descending (most recent first), limit to 25
       const publishedSorted = (publishedData.drafts || [])
         .sort((a: PostDraft, b: PostDraft) =>
           new Date(b.published_at || 0).getTime() - new Date(a.published_at || 0).getTime()
         )
-        .slice(0, 5);
+        .slice(0, 25);
       setPublishedDrafts(publishedSorted);
     } catch (error) {
       console.error('Error fetching drafts:', error);
