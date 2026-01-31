@@ -12,10 +12,14 @@ import {
   RefreshCw,
   Trophy,
   Medal,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
 } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { formatDistanceToNow } from 'date-fns';
 
 type TimePeriod = '7d' | '30d' | 'all';
 type Platform = 'all' | 'x' | 'linkedin';
@@ -63,6 +67,7 @@ export default function LeaderboardPage() {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postMetrics, setPostMetrics] = useState<Record<string, XMetrics>>({});
   const [linkedinMetrics, setLinkedinMetrics] = useState<Record<string, LinkedInMetrics>>({});
+  const [expandedAuthor, setExpandedAuthor] = useState<string | null>(null);
 
   const fetchPosts = async () => {
     setLoadingPosts(true);
@@ -208,6 +213,15 @@ export default function LeaderboardPage() {
 
   const leaderboard = calculateLeaderboard();
 
+  // Get posts for a specific author
+  const getAuthorPosts = (authorEmail: string) => {
+    return posts.filter(p => p.author_email === authorEmail);
+  };
+
+  const toggleExpanded = (authorEmail: string) => {
+    setExpandedAuthor(prev => prev === authorEmail ? null : authorEmail);
+  };
+
   const getMedalColor = (index: number) => {
     if (index === 0) return 'text-yellow-500';
     if (index === 1) return 'text-gray-400';
@@ -327,45 +341,131 @@ export default function LeaderboardPage() {
               </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {leaderboard.map((entry, index) => (
-                      <div
-                        key={entry.author_email}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-brand-neutral-100 hover:bg-brand-neutral-50 transition-colors"
-                      >
-                        {/* Rank */}
-                        <div className="flex-shrink-0 w-10 flex justify-center">
-                          {index < 3 ? (
-                            <Medal className={cn("h-6 w-6", getMedalColor(index))} />
-                          ) : (
-                            <span className="w-6 h-6 flex items-center justify-center text-sm font-medium text-brand-navy-400">
-                              {index + 1}
-                            </span>
+                    {leaderboard.map((entry, index) => {
+                      const isExpanded = expandedAuthor === entry.author_email;
+                      const authorPosts = isExpanded ? getAuthorPosts(entry.author_email) : [];
+
+                      return (
+                        <div key={entry.author_email} className="rounded-lg border border-brand-neutral-100 overflow-hidden">
+                          {/* Contributor Row */}
+                          <div
+                            onClick={() => toggleExpanded(entry.author_email)}
+                            className="flex items-center gap-3 p-3 hover:bg-brand-neutral-50 transition-colors cursor-pointer"
+                          >
+                            {/* Rank */}
+                            <div className="flex-shrink-0 w-10 flex justify-center">
+                              {index < 3 ? (
+                                <Medal className={cn("h-6 w-6", getMedalColor(index))} />
+                              ) : (
+                                <span className="w-6 h-6 flex items-center justify-center text-sm font-medium text-brand-navy-400">
+                                  {index + 1}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Author Info */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-brand-navy-900 truncate">
+                                {entry.author_name}
+                              </p>
+                              <p className="text-xs text-brand-navy-400">
+                                {entry.postCount} {entry.postCount === 1 ? 'post' : 'posts'}
+                              </p>
+                            </div>
+
+                            {/* Stats */}
+                            <div className="flex items-center gap-6 text-sm">
+                              <div className="text-right">
+                                <p className="font-semibold text-brand-navy-900">{formatNumber(entry.totalImpressions)}</p>
+                                <p className="text-xs text-brand-navy-400">impressions</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold text-brand-navy-900">{formatNumber(entry.totalLikes)}</p>
+                                <p className="text-xs text-brand-navy-400">likes</p>
+                              </div>
+                            </div>
+
+                            {/* Expand Icon */}
+                            <div className="flex-shrink-0">
+                              {isExpanded ? (
+                                <ChevronUp className="h-5 w-5 text-brand-navy-400" />
+                              ) : (
+                                <ChevronDown className="h-5 w-5 text-brand-navy-400" />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Expanded Posts Section */}
+                          {isExpanded && authorPosts.length > 0 && (
+                            <div className="border-t border-brand-neutral-100 bg-brand-neutral-50/50">
+                              <div className="p-3 space-y-2">
+                                {authorPosts.map((post) => {
+                                  const metrics = post.channel === 'x'
+                                    ? postMetrics[post.external_id]
+                                    : linkedinMetrics[post.external_id];
+                                  const impressions = post.channel === 'x'
+                                    ? (metrics as XMetrics)?.impressions || 0
+                                    : (metrics as LinkedInMetrics)?.impressions || 0;
+                                  const likes = post.channel === 'x'
+                                    ? (metrics as XMetrics)?.likes || 0
+                                    : (metrics as LinkedInMetrics)?.likes || 0;
+
+                                  return (
+                                    <div
+                                      key={post.id}
+                                      className="flex items-start gap-3 p-3 bg-white rounded-lg border border-brand-neutral-100"
+                                    >
+                                      {/* Platform Icon */}
+                                      <div className={cn(
+                                        "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-white",
+                                        post.channel === 'x' ? 'bg-black' : 'bg-blue-600'
+                                      )}>
+                                        {post.channel === 'x' ? (
+                                          <XIcon className="h-4 w-4" />
+                                        ) : (
+                                          <Linkedin className="h-4 w-4" />
+                                        )}
+                                      </div>
+
+                                      {/* Content */}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-brand-navy-800 line-clamp-2">
+                                          {post.content}
+                                        </p>
+                                        <div className="flex items-center gap-3 mt-1">
+                                          <span className="text-xs text-brand-navy-400">
+                                            {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                                          </span>
+                                          <span className="text-xs text-brand-navy-400">
+                                            {formatNumber(impressions)} impressions
+                                          </span>
+                                          <span className="text-xs text-brand-navy-400">
+                                            {formatNumber(likes)} likes
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {/* External Link */}
+                                      {post.external_url && (
+                                        <a
+                                          href={post.external_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="flex-shrink-0 p-2 rounded-lg hover:bg-brand-neutral-100 transition-colors"
+                                        >
+                                          <ExternalLink className="h-4 w-4 text-brand-navy-400" />
+                                        </a>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           )}
                         </div>
-
-                        {/* Author Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-brand-navy-900 truncate">
-                            {entry.author_name}
-                          </p>
-                          <p className="text-xs text-brand-navy-400">
-                            {entry.postCount} {entry.postCount === 1 ? 'post' : 'posts'}
-                          </p>
-                        </div>
-
-                        {/* Stats */}
-                        <div className="flex items-center gap-6 text-sm">
-                          <div className="text-right">
-                            <p className="font-semibold text-brand-navy-900">{formatNumber(entry.totalImpressions)}</p>
-                            <p className="text-xs text-brand-navy-400">impressions</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-brand-navy-900">{formatNumber(entry.totalLikes)}</p>
-                            <p className="text-xs text-brand-navy-400">likes</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
             </Card>
