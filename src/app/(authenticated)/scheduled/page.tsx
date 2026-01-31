@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Clock, Send, Trash2, Linkedin, Calendar, Globe, RefreshCw, X } from 'lucide-react';
+import { Loader2, Clock, Send, Trash2, Linkedin, Calendar, Globe, RefreshCw, X, CheckCircle2, ExternalLink } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -24,6 +24,8 @@ interface PostDraft {
   scheduled_timezone: string;
   created_at: string;
   rejection_reason?: string;
+  published_at?: string;
+  external_url?: string;
 }
 
 const TIMEZONES = [
@@ -39,6 +41,7 @@ const TIMEZONES = [
 export default function ScheduledPage() {
   const { user } = useUser();
   const [drafts, setDrafts] = useState<PostDraft[]>([]);
+  const [publishedDrafts, setPublishedDrafts] = useState<PostDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [userTimezone, setUserTimezone] = useState('America/New_York');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -58,14 +61,16 @@ export default function ScheduledPage() {
 
   const fetchDrafts = async () => {
     try {
-      // Fetch both scheduled and failed posts
-      const [scheduledRes, failedRes] = await Promise.all([
+      // Fetch scheduled, failed, and recently published posts
+      const [scheduledRes, failedRes, publishedRes] = await Promise.all([
         fetch('/api/drafts?route=scheduled&status=scheduled'),
         fetch('/api/drafts?route=scheduled&status=failed'),
+        fetch('/api/drafts?route=scheduled&status=published'),
       ]);
 
       const scheduledData = await scheduledRes.json();
       const failedData = await failedRes.json();
+      const publishedData = await publishedRes.json();
 
       const allDrafts = [
         ...(scheduledData.drafts || []),
@@ -77,6 +82,14 @@ export default function ScheduledPage() {
         new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime()
       );
       setDrafts(sorted);
+
+      // Sort published by published_at descending (most recent first), limit to 5
+      const publishedSorted = (publishedData.drafts || [])
+        .sort((a: PostDraft, b: PostDraft) =>
+          new Date(b.published_at || 0).getTime() - new Date(a.published_at || 0).getTime()
+        )
+        .slice(0, 5);
+      setPublishedDrafts(publishedSorted);
     } catch (error) {
       console.error('Error fetching drafts:', error);
     } finally {
@@ -455,6 +468,56 @@ export default function ScheduledPage() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          )}
+
+          {/* Recently Published Section */}
+          {publishedDrafts.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-lg font-semibold text-brand-navy-900 mb-4 flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Recently Published
+              </h2>
+              <div className="space-y-3">
+                {publishedDrafts.map(draft => (
+                  <Card key={draft.id} className="border-green-200 bg-green-50/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className={cn(
+                            "flex h-8 w-8 items-center justify-center rounded-full text-white flex-shrink-0",
+                            draft.channel === 'linkedin' ? 'bg-blue-600' : 'bg-black'
+                          )}>
+                            {getChannelIcon(draft.channel)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-brand-navy-800 line-clamp-2">
+                              {draft.current_content || draft.content}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2 text-xs text-brand-navy-500">
+                              <CheckCircle2 className="h-3 w-3 text-green-500" />
+                              <span>Published {draft.published_at ? formatDistanceToNow(new Date(draft.published_at), { addSuffix: true }) : ''}</span>
+                              <span>·</span>
+                              <span>by {draft.author_name}</span>
+                            </div>
+                          </div>
+                        </div>
+                        {draft.external_url && (
+                          <a
+                            href={draft.external_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs text-green-700 hover:text-green-800 flex-shrink-0"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            View
+                          </a>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
         </div>
