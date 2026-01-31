@@ -207,28 +207,12 @@ export default function LeaderboardPage() {
   };
 
   const leaderboard = calculateLeaderboard();
-  const topThree = leaderboard.slice(0, 3);
-  const restOfList = leaderboard.slice(3);
 
   const getMedalColor = (index: number) => {
     if (index === 0) return 'text-yellow-500';
     if (index === 1) return 'text-gray-400';
     if (index === 2) return 'text-amber-600';
     return 'text-brand-navy-400';
-  };
-
-  const getPodiumBg = (index: number) => {
-    if (index === 0) return 'bg-gradient-to-b from-yellow-400 to-yellow-500';
-    if (index === 1) return 'bg-gradient-to-b from-gray-300 to-gray-400';
-    if (index === 2) return 'bg-gradient-to-b from-amber-600 to-amber-700';
-    return '';
-  };
-
-  const getPodiumHeight = (index: number) => {
-    if (index === 0) return 'h-32';
-    if (index === 1) return 'h-24';
-    if (index === 2) return 'h-20';
-    return '';
   };
 
   return (
@@ -331,128 +315,16 @@ export default function LeaderboardPage() {
               </CardContent>
             </Card>
           ) : (
-            <>
-              {/* Podium Section */}
-              {topThree.length > 0 && (
-                <Card className="bg-gradient-to-br from-brand-navy-800 to-brand-navy-900 border-0">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-6">
-                      <Trophy className="h-6 w-6 text-yellow-400" />
-                      <h2 className="text-xl font-bold text-white">Top Contributors</h2>
-                      <span className="text-sm font-normal text-brand-navy-300 ml-2">
-                        ({getPeriodLabel(period)}{platform !== 'all' ? ` - ${platform === 'x' ? 'X' : 'LinkedIn'}` : ''})
-                      </span>
-                    </div>
-
-                    <div className="flex items-end justify-center gap-4">
-                      {/* 2nd Place */}
-                      {topThree[1] && (
-                        <div className="w-full max-w-[180px]">
-                          <div className="bg-white rounded-xl p-4 mb-2 shadow-lg">
-                            <div className="flex flex-col items-center">
-                              <div className="w-12 h-12 rounded-full bg-brand-navy-100 flex items-center justify-center">
-                                <span className="text-lg font-semibold text-brand-navy-700">
-                                  {topThree[1].author_name.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                              <p className="mt-2 font-semibold text-brand-navy-900 text-center text-sm">{topThree[1].author_name}</p>
-                              <p className="text-xs text-brand-navy-500">{topThree[1].postCount} posts</p>
-                              <div className="flex items-center gap-3 mt-2 text-xs text-brand-navy-600">
-                                <span className="flex items-center gap-1">
-                                  <Eye className="h-3 w-3" />
-                                  {formatNumber(topThree[1].totalImpressions)}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Heart className="h-3 w-3" />
-                                  {formatNumber(topThree[1].totalLikes)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex justify-center mb-1">
-                            <Medal className="h-8 w-8 text-gray-400" />
-                          </div>
-                          <div className={cn("w-full rounded-t-lg flex items-center justify-center", getPodiumHeight(1), getPodiumBg(1))}>
-                            <span className="text-white text-2xl font-bold">2</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 1st Place */}
-                      {topThree[0] && (
-                        <div className="w-full max-w-[200px]">
-                          <div className="bg-white rounded-xl p-4 mb-2 shadow-lg ring-2 ring-yellow-400">
-                            <div className="flex flex-col items-center">
-                              <div className="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center">
-                                <span className="text-xl font-semibold text-yellow-700">
-                                  {topThree[0].author_name.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                              <p className="mt-2 font-semibold text-brand-navy-900 text-center">{topThree[0].author_name}</p>
-                              <p className="text-xs text-brand-navy-500">{topThree[0].postCount} posts</p>
-                              <div className="flex items-center gap-3 mt-2 text-xs text-brand-navy-600">
-                                <span className="flex items-center gap-1">
-                                  <Eye className="h-3 w-3" />
-                                  {formatNumber(topThree[0].totalImpressions)}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Heart className="h-3 w-3" />
-                                  {formatNumber(topThree[0].totalLikes)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex justify-center mb-1">
-                            <Medal className="h-8 w-8 text-yellow-500" />
-                          </div>
-                          <div className={cn("w-full rounded-t-lg flex items-center justify-center", getPodiumHeight(0), getPodiumBg(0))}>
-                            <span className="text-white text-2xl font-bold">1</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 3rd Place */}
-                      {topThree[2] && (
-                        <div className="w-full max-w-[180px]">
-                          <div className="bg-white rounded-xl p-4 mb-2 shadow-lg">
-                            <div className="flex flex-col items-center">
-                              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                                <span className="text-lg font-semibold text-amber-700">
-                                  {topThree[2].author_name.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                              <p className="mt-2 font-semibold text-brand-navy-900 text-center text-sm">{topThree[2].author_name}</p>
-                              <p className="text-xs text-brand-navy-500">{topThree[2].postCount} posts</p>
-                              <div className="flex items-center gap-3 mt-2 text-xs text-brand-navy-600">
-                                <span className="flex items-center gap-1">
-                                  <Eye className="h-3 w-3" />
-                                  {formatNumber(topThree[2].totalImpressions)}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Heart className="h-3 w-3" />
-                                  {formatNumber(topThree[2].totalLikes)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex justify-center mb-1">
-                            <Medal className="h-8 w-8 text-amber-600" />
-                          </div>
-                          <div className={cn("w-full rounded-t-lg flex items-center justify-center", getPodiumHeight(2), getPodiumBg(2))}>
-                            <span className="text-white text-2xl font-bold">3</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Full Leaderboard Table */}
-              <Card className="border-brand-neutral-100">
-                <CardHeader>
-                  <CardTitle className="text-brand-navy-900">All Contributors</CardTitle>
-                </CardHeader>
+            <Card className="border-brand-neutral-100">
+              <CardHeader>
+                <CardTitle className="text-brand-navy-900 flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-brand-brown" />
+                  Top Contributors
+                  <span className="text-sm font-normal text-brand-navy-500">
+                    ({getPeriodLabel(period)}{platform !== 'all' ? ` - ${platform === 'x' ? 'X' : 'LinkedIn'}` : ''})
+                  </span>
+                </CardTitle>
+              </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {leaderboard.map((entry, index) => (
@@ -496,8 +368,7 @@ export default function LeaderboardPage() {
                     ))}
                   </div>
                 </CardContent>
-              </Card>
-            </>
+            </Card>
           )}
         </div>
       </div>
