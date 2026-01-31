@@ -15,9 +15,10 @@ interface PodiumPost {
 
 interface PodiumProps {
   posts: PodiumPost[];
+  onPostClick?: (post: PodiumPost) => void;
 }
 
-export function Podium({ posts }: PodiumProps) {
+export function Podium({ posts, onPostClick }: PodiumProps) {
   if (posts.length === 0) return null;
 
   // Reorder for podium display: 2nd, 1st, 3rd
@@ -48,10 +49,13 @@ export function Podium({ posts }: PodiumProps) {
           return (
             <div key={post.id} className="flex flex-col items-center w-full max-w-[200px]">
               {/* Post card */}
-              <div className={cn(
-                "w-full bg-white rounded-xl p-4 mb-2 shadow-lg transform transition-transform hover:scale-105",
-                isFirst && "ring-2 ring-yellow-400"
-              )}>
+              <div
+                onClick={() => onPostClick?.(post)}
+                className={cn(
+                  "w-full bg-white rounded-xl p-4 mb-2 shadow-lg transform transition-transform hover:scale-105 cursor-pointer",
+                  isFirst && "ring-2 ring-yellow-400"
+                )}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-brown font-bold text-white text-xs">
                     M

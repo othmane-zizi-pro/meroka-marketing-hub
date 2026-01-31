@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Podium } from '@/components/posts/Podium';
+import { PostModal } from '@/components/posts/PostModal';
 import { EmployeePostCard } from '@/components/posts/EmployeePostCard';
 import { ComposePostCard } from '@/components/posts/ComposePostCard';
 import { createClient } from '@/lib/supabase/client';
@@ -69,6 +70,7 @@ export default function ChannelPage() {
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [modalPost, setModalPost] = useState<Post | null>(null);
   const POSTS_PER_PAGE = 10;
 
   const title = channelNames[channel] || 'Channel';
@@ -348,7 +350,14 @@ export default function ChannelPage() {
               <>
                 {/* Podium for top 3 - only for Employee Voices campaign */}
                 {topPosts.length >= 3 && isEmployeeVoices && (
-                  <Podium posts={topPosts} />
+                  <Podium
+                    posts={topPosts}
+                    onPostClick={(podiumPost) => {
+                      // Find the full post data
+                      const fullPost = posts.find(p => p.id === podiumPost.id);
+                      if (fullPost) setModalPost(fullPost);
+                    }}
+                  />
                 )}
 
                 {/* Author filter - only for Employee Voices campaign */}
@@ -445,6 +454,18 @@ export default function ChannelPage() {
           </div>
         )}
       </div>
+
+      {/* Post Modal */}
+      {modalPost && (
+        <PostModal
+          post={modalPost}
+          currentUserEmail={user?.email || ''}
+          initialLiked={userLikes.has(modalPost.id)}
+          initialComments={comments[modalPost.id] || []}
+          onClose={() => setModalPost(null)}
+          onLikeChange={handleLikeChange}
+        />
+      )}
     </div>
   );
 }
