@@ -15,7 +15,6 @@ import {
   TrendingUp,
   Linkedin,
   RefreshCw,
-  Camera,
 } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
@@ -83,7 +82,6 @@ export default function AnalyticsPage() {
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [loadingFollowers, setLoadingFollowers] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(true);
-  const [takingSnapshot, setTakingSnapshot] = useState(false);
 
   const fetchSummary = async () => {
     setLoadingSummary(true);
@@ -128,24 +126,6 @@ export default function AnalyticsPage() {
       console.error('Error fetching follower history:', error);
     } finally {
       setLoadingHistory(false);
-    }
-  };
-
-  const takeSnapshot = async () => {
-    setTakingSnapshot(true);
-    try {
-      const response = await fetch('/api/analytics/followers/snapshot', { method: 'POST' });
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Snapshot taken:', data);
-        // Refresh follower data after snapshot
-        fetchFollowers();
-        fetchFollowerHistory();
-      }
-    } catch (error) {
-      console.error('Error taking snapshot:', error);
-    } finally {
-      setTakingSnapshot(false);
     }
   };
 
@@ -265,27 +245,16 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={takeSnapshot}
-                disabled={takingSnapshot}
-              >
-                <Camera className={cn("h-4 w-4 mr-2", takingSnapshot && "animate-pulse")} />
-                {takingSnapshot ? 'Saving...' : 'Take Snapshot'}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={refreshAll}
-                disabled={loadingSummary || loadingFollowers || loadingHistory}
-              >
-                <RefreshCw className={cn("h-4 w-4 mr-2", (loadingSummary || loadingFollowers || loadingHistory) && "animate-spin")} />
-                Refresh
-              </Button>
-            </div>
+            {/* Refresh Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshAll}
+              disabled={loadingSummary || loadingFollowers || loadingHistory}
+            >
+              <RefreshCw className={cn("h-4 w-4 mr-2", (loadingSummary || loadingFollowers || loadingHistory) && "animate-spin")} />
+              Refresh
+            </Button>
           </div>
 
           {/* Follower Cards */}
@@ -388,9 +357,9 @@ export default function AnalyticsPage() {
                 </div>
               ) : followerHistory.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-brand-navy-400">
-                  <Camera className="h-12 w-12 mb-3 opacity-50" />
+                  <TrendingUp className="h-12 w-12 mb-3 opacity-50" />
                   <p className="text-sm">No historical data available yet.</p>
-                  <p className="text-xs mt-1">Click &quot;Take Snapshot&quot; to start tracking follower growth.</p>
+                  <p className="text-xs mt-1">Snapshots are taken automatically every day at midnight EST.</p>
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>

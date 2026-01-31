@@ -111,6 +111,35 @@ async function takeSnapshot() {
         }
       }
 
+      // Fallback: scrape public LinkedIn page if API returns 0
+      if (followerCount === 0) {
+        try {
+          const scrapeUrl = 'https://www.linkedin.com/company/merokainc';
+          const scrapeResponse = await fetch(scrapeUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.5',
+            },
+          });
+
+          if (scrapeResponse.ok) {
+            const html = await scrapeResponse.text();
+            // Look for follower count patterns like "1,730 followers"
+            const followerMatch = html.match(/([0-9,]+)\s*followers/i);
+            if (followerMatch) {
+              const scrapedCount = parseInt(followerMatch[1].replace(/,/g, ''), 10);
+              if (!isNaN(scrapedCount) && scrapedCount > 0) {
+                followerCount = scrapedCount;
+                console.log(`LinkedIn followers scraped: ${followerCount}`);
+              }
+            }
+          }
+        } catch (scrapeError) {
+          console.error('LinkedIn scrape fallback failed:', scrapeError);
+        }
+      }
+
       const { error } = await supabase
         .from('follower_snapshots')
         .upsert({
