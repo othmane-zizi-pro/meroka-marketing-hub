@@ -1420,7 +1420,7 @@ export default function PostingPage() {
             <CardHeader>
               <CardTitle className="text-brand-navy-900 flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
-                Leaderboard (X)
+                Leaderboard ({selectedChannel === 'x' ? 'X' : selectedChannel === 'linkedin' ? 'LinkedIn' : currentChannel.name})
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1456,11 +1456,17 @@ export default function PostingPage() {
                   }
                   authorStats[key].posts += 1;
 
-                  // Add metrics if available
-                  if (post.external_id && postMetrics[post.external_id]) {
-                    const metrics = postMetrics[post.external_id];
-                    authorStats[key].impressions += metrics.impressions || 0;
-                    authorStats[key].likes += metrics.likes || 0;
+                  // Add metrics if available (use appropriate metrics based on channel)
+                  if (post.external_id) {
+                    if (selectedChannel === 'x' && postMetrics[post.external_id]) {
+                      const metrics = postMetrics[post.external_id];
+                      authorStats[key].impressions += metrics.impressions || 0;
+                      authorStats[key].likes += metrics.likes || 0;
+                    } else if (selectedChannel === 'linkedin' && linkedinMetrics[post.external_id]) {
+                      const metrics = linkedinMetrics[post.external_id];
+                      authorStats[key].impressions += metrics.impressions || 0;
+                      authorStats[key].likes += metrics.likes || 0;
+                    }
                   }
                 });
 
