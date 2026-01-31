@@ -28,8 +28,8 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -497,7 +497,17 @@ export default function AnalyticsPage() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
-                  <LineChart data={followerHistory} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <AreaChart data={followerHistory} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="colorX" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#000000" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#000000" stopOpacity={0.2}/>
+                      </linearGradient>
+                      <linearGradient id="colorLinkedin" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0A66C2" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#0A66C2" stopOpacity={0.2}/>
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                     <XAxis
                       dataKey="date"
@@ -519,45 +529,35 @@ export default function AnalyticsPage() {
                       }}
                       formatter={(value, name) => [
                         formatNumber(Number(value) || 0),
-                        name === 'total' ? 'Total' : name === 'x' ? 'X' : 'LinkedIn'
+                        name === 'x' ? 'X' : 'LinkedIn'
                       ]}
                       labelFormatter={(label) => formatChartDate(String(label))}
                     />
                     <Legend
                       wrapperStyle={{ fontSize: '12px' }}
-                      formatter={(value) => value === 'total' ? 'Total' : value === 'x' ? 'X' : 'LinkedIn'}
+                      formatter={(value) => value === 'x' ? 'X' : 'LinkedIn'}
                     />
-                    {platform === 'all' && (
-                      <Line
-                        type="monotone"
-                        dataKey="total"
-                        stroke="#8B5A2B"
-                        strokeWidth={2}
-                        dot={{ fill: '#8B5A2B', strokeWidth: 2, r: 3 }}
-                        activeDot={{ r: 5 }}
-                      />
-                    )}
                     {(platform === 'all' || platform === 'x') && (
-                      <Line
+                      <Area
                         type="monotone"
                         dataKey="x"
+                        stackId="1"
                         stroke="#000000"
                         strokeWidth={2}
-                        dot={{ fill: '#000000', strokeWidth: 2, r: 3 }}
-                        activeDot={{ r: 5 }}
+                        fill="url(#colorX)"
                       />
                     )}
                     {(platform === 'all' || platform === 'linkedin') && (
-                      <Line
+                      <Area
                         type="monotone"
                         dataKey="linkedin"
+                        stackId="1"
                         stroke="#0A66C2"
                         strokeWidth={2}
-                        dot={{ fill: '#0A66C2', strokeWidth: 2, r: 3 }}
-                        activeDot={{ r: 5 }}
+                        fill="url(#colorLinkedin)"
                       />
                     )}
-                  </LineChart>
+                  </AreaChart>
                 </ResponsiveContainer>
               )}
             </CardContent>

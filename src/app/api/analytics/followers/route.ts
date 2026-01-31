@@ -111,6 +111,22 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        // Fallback to latest snapshot if live API returns 0
+        if (followerCount === 0) {
+          const { data: latestSnapshot } = await supabase
+            .from('follower_snapshots')
+            .select('follower_count')
+            .eq('platform', 'linkedin')
+            .order('snapshot_date', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (latestSnapshot && latestSnapshot.follower_count > 0) {
+            followerCount = latestSnapshot.follower_count;
+            console.log('Using LinkedIn follower count from snapshot:', followerCount);
+          }
+        }
+
         // Always set LinkedIn result with org name, even if follower count is 0
         results.linkedin = {
           followers: followerCount,
@@ -120,11 +136,27 @@ export async function GET(request: NextRequest) {
       }
     } catch (e: any) {
       console.error('Error fetching LinkedIn followers:', e.message);
-      // Still try to show org name if we have connection
+      // Still try to show org name if we have connection, and try snapshot fallback
+      let snapshotCount = 0;
+      try {
+        const { data: latestSnapshot } = await supabase
+          .from('follower_snapshots')
+          .select('follower_count')
+          .eq('platform', 'linkedin')
+          .order('snapshot_date', { ascending: false })
+          .limit(1)
+          .single();
+        if (latestSnapshot) {
+          snapshotCount = latestSnapshot.follower_count;
+        }
+      } catch (snapErr) {
+        console.error('Error fetching snapshot fallback:', snapErr);
+      }
       results.linkedin = {
-        followers: 0,
+        followers: snapshotCount,
         organizationName: 'Meroka',
       };
+      results.combined += snapshotCount;
     }
 
     return NextResponse.json(results);
