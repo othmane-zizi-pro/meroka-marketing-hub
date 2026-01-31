@@ -89,6 +89,7 @@ export default function PostingPage() {
   const [isPosting, setIsPosting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; tweetId?: string; postUrl?: string } | null>(null);
   const [recentPosts, setRecentPosts] = useState<SocialPost[]>([]);
+  const [allPosts, setAllPosts] = useState<SocialPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [linkedinConnected, setLinkedinConnected] = useState(false);
   const [linkedinName, setLinkedinName] = useState<string | null>(null);
@@ -125,25 +126,38 @@ export default function PostingPage() {
 
   const fetchRecentPosts = async () => {
     const supabase = createClient();
-    const { data, error } = await supabase
+
+    // Fetch recent posts for activity feed (limited)
+    const { data: recentData, error: recentError } = await supabase
       .from('social_posts')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(10);
 
-    if (!error && data) {
-      setRecentPosts(data);
-      // Fetch metrics for X posts
-      const xPosts = data.filter(p => p.channel === 'x' && p.external_id);
+    // Fetch all posts for leaderboard (no limit)
+    const { data: allData, error: allError } = await supabase
+      .from('social_posts')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!recentError && recentData) {
+      setRecentPosts(recentData);
+      // Fetch metrics for X posts (recent only for display)
+      const xPosts = recentData.filter(p => p.channel === 'x' && p.external_id);
       if (xPosts.length > 0) {
         fetchMetrics(xPosts.map(p => p.external_id));
       }
-      // Fetch metrics for LinkedIn posts
-      const linkedinPosts = data.filter(p => p.channel === 'linkedin' && p.external_id);
+      // Fetch metrics for LinkedIn posts (recent only for display)
+      const linkedinPosts = recentData.filter(p => p.channel === 'linkedin' && p.external_id);
       if (linkedinPosts.length > 0) {
         fetchLinkedInMetrics(linkedinPosts.map(p => p.external_id));
       }
     }
+
+    if (!allError && allData) {
+      setAllPosts(allData);
+    }
+
     setLoadingPosts(false);
   };
 
@@ -1431,8 +1445,8 @@ export default function PostingPage() {
             </CardHeader>
             <CardContent>
               {(() => {
-                // Calculate leaderboard from posts for the selected channel
-                const channelPosts = recentPosts.filter(p => p.channel === selectedChannel);
+                // Calculate leaderboard from ALL posts for the selected channel
+                const channelPosts = allPosts.filter(p => p.channel === selectedChannel);
 
                 if (channelPosts.length === 0) {
                   return (
