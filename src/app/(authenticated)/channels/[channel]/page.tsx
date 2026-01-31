@@ -69,7 +69,7 @@ export default function ChannelPage() {
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const POSTS_PER_PAGE = 25;
+  const POSTS_PER_PAGE = 10;
 
   const title = channelNames[channel] || 'Channel';
   const description = channelDescriptions[channel] || '';
