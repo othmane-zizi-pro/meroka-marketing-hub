@@ -172,18 +172,19 @@ export async function POST(request: NextRequest) {
     // Handle Like action
     if (actionType === 'like') {
       try {
-        // LinkedIn reactions API uses the socialActions endpoint
-        const reactionResponse = await fetch(`https://api.linkedin.com/v2/reactions`, {
+        // LinkedIn REST reactions API - actor goes in query param, not body
+        const actorUrn = encodeURIComponent(`urn:li:organization:${organizationId}`);
+        const reactionResponse = await fetch(`https://api.linkedin.com/rest/reactions?actor=${actorUrn}`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${connection.access_token}`,
             'Content-Type': 'application/json',
             'X-Restli-Protocol-Version': '2.0.0',
+            'LinkedIn-Version': '202501',
           },
           body: JSON.stringify({
             root: targetPostUrn,
             reactionType: 'LIKE',
-            actor: `urn:li:organization:${organizationId}`,
           }),
         });
 
@@ -225,15 +226,17 @@ export async function POST(request: NextRequest) {
     // Handle Comment action
     if (actionType === 'comment') {
       try {
-        const commentResponse = await fetch(`https://api.linkedin.com/v2/socialActions/${encodeURIComponent(targetPostUrn!)}/comments`, {
+        const commentResponse = await fetch(`https://api.linkedin.com/rest/socialActions/${encodeURIComponent(targetPostUrn!)}/comments`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${connection.access_token}`,
             'Content-Type': 'application/json',
             'X-Restli-Protocol-Version': '2.0.0',
+            'LinkedIn-Version': '202501',
           },
           body: JSON.stringify({
             actor: `urn:li:organization:${organizationId}`,
+            object: targetPostUrn,
             message: {
               text: content,
             },
