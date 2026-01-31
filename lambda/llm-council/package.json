@@ -1,0 +1,7 @@
+{
+  "name": "llm-council",
+  "version": "1.0.0",
+  "description": "LLM Council - generates posts using multiple LLMs and picks the best one",
+  "type": "module",
+  "main": "index.mjs"
+}

@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink, MessageCircle, Repeat2, Quote, Heart, Link2, BarChart3, Eye, Trophy, Medal, Trash2, FileEdit, Clock, Zap } from 'lucide-react';
+import { Linkedin, Instagram, Send, Check, AlertCircle, Loader2, Image, X, Film, ExternalLink, MessageCircle, Repeat2, Quote, Heart, Link2, BarChart3, Eye, Trophy, Medal, Trash2, FileEdit, Clock, Zap, MonitorPlay } from 'lucide-react';
+import { PlatformPreview } from '@/components/posts/PlatformPreview';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -120,6 +121,7 @@ export default function PostingPage() {
   const [scheduledTime, setScheduledTime] = useState('');
   const [selectedLinkedInPostType, setSelectedLinkedInPostType] = useState<LinkedInPostType>('post');
   const [linkedinPostUrl, setLinkedinPostUrl] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ADMIN_EMAIL = 'othmane.zizi@meroka.com';
@@ -1130,10 +1132,35 @@ export default function PostingPage() {
                   <Film className="h-4 w-4" />
                   Add Video
                 </button>
+                <button
+                  onClick={() => setShowPreview(!showPreview)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                    showPreview
+                      ? "bg-brand-brown text-white"
+                      : "text-brand-navy-600 bg-brand-neutral-100 hover:bg-brand-neutral-200"
+                  )}
+                >
+                  <MonitorPlay className="h-4 w-4" />
+                  Preview
+                </button>
                 <span className="text-xs text-brand-navy-400">
                   {selectedChannel === 'linkedin' ? 'Images: 5MB max | Videos: 200MB' : 'Images: 5MB max | GIFs: 15MB | Videos: 512MB'}
                 </span>
               </div>
+              )}
+
+              {/* Platform Preview */}
+              {showPreview && needsContent && (
+                <div className="p-4 bg-brand-neutral-50 rounded-xl">
+                  <p className="text-sm font-medium text-brand-navy-700 mb-3">Preview</p>
+                  <PlatformPreview
+                    platform={selectedChannel as 'linkedin' | 'x'}
+                    content={content}
+                    mediaUrl={mediaPreview || undefined}
+                    mediaType={mediaFile?.type.startsWith('video/') ? 'video' : 'image'}
+                  />
+                </div>
               )}
 
               {/* Result message */}
