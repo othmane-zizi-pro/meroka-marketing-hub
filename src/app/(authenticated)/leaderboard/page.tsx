@@ -69,6 +69,8 @@ export default function LeaderboardPage() {
   const [postMetrics, setPostMetrics] = useState<Record<string, XMetrics>>({});
   const [linkedinMetrics, setLinkedinMetrics] = useState<Record<string, LinkedInMetrics>>({});
   const [expandedAuthor, setExpandedAuthor] = useState<string | null>(null);
+  const [topPostsPage, setTopPostsPage] = useState(1);
+  const POSTS_PER_PAGE = 5;
 
   const fetchPosts = async () => {
     setLoadingPosts(true);
@@ -153,6 +155,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     fetchPosts();
+    setTopPostsPage(1); // Reset pagination when filters change
   }, [period, platform]);
 
   const formatNumber = (num: number) => {
@@ -240,7 +243,7 @@ export default function LeaderboardPage() {
     return 'text-brand-navy-400';
   };
 
-  const getTopPosts = (limit: number = 5) => {
+  const getAllPostsSorted = () => {
     return posts
       .map(post => {
         const impressions = post.channel === 'x'
@@ -251,11 +254,15 @@ export default function LeaderboardPage() {
           : (linkedinMetrics[post.external_id] as LinkedInMetrics)?.likes || 0;
         return { ...post, impressions, likes };
       })
-      .sort((a, b) => b.impressions - a.impressions)
-      .slice(0, limit);
+      .sort((a, b) => b.impressions - a.impressions);
   };
 
-  const topPosts = getTopPosts();
+  const allPostsSorted = getAllPostsSorted();
+  const totalPages = Math.ceil(allPostsSorted.length / POSTS_PER_PAGE);
+  const paginatedPosts = allPostsSorted.slice(
+    (topPostsPage - 1) * POSTS_PER_PAGE,
+    topPostsPage * POSTS_PER_PAGE
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -358,105 +365,17 @@ export default function LeaderboardPage() {
             </Card>
           ) : (
             <>
-              {/* Top Posts Section */}
+              {/* Top Contributors Section */}
               <Card className="border-brand-neutral-100">
                 <CardHeader>
                   <CardTitle className="text-brand-navy-900 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-brand-brown" />
-                    Top Posts
+                    <Trophy className="h-5 w-5 text-brand-brown" />
+                    Top Contributors
                     <span className="text-sm font-normal text-brand-navy-500">
                       ({getPeriodLabel(period)}{platform !== 'all' ? ` - ${platform === 'x' ? 'X' : 'LinkedIn'}` : ''})
                     </span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {topPosts.map((post, index) => (
-                      <div
-                        key={post.id}
-                        className="flex items-start gap-3 p-3 rounded-lg border border-brand-neutral-100 hover:bg-brand-neutral-50 transition-colors"
-                      >
-                        {/* Rank */}
-                        <div className="flex-shrink-0 w-8 flex justify-center pt-1">
-                          {index < 3 ? (
-                            <Medal className={cn("h-5 w-5", getMedalColor(index))} />
-                          ) : (
-                            <span className="w-5 h-5 flex items-center justify-center text-sm font-medium text-brand-navy-400">
-                              {index + 1}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Platform Icon */}
-                        <div className={cn(
-                          "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-white",
-                          post.channel === 'x' ? 'bg-black' : 'bg-blue-600'
-                        )}>
-                          {post.channel === 'x' ? (
-                            <XIcon className="h-4 w-4" />
-                          ) : (
-                            <Linkedin className="h-4 w-4" />
-                          )}
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-brand-navy-800 line-clamp-3">
-                            {post.content}
-                          </p>
-                          <div className="flex items-center gap-3 mt-2">
-                            <span className="text-xs font-medium text-brand-navy-600">
-                              {post.author_name}
-                            </span>
-                            <span className="text-xs text-brand-navy-400">
-                              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Stats */}
-                        <div className="flex items-center gap-4 text-sm flex-shrink-0">
-                          <div className="flex items-center gap-1 text-brand-navy-500">
-                            <Eye className="h-4 w-4" />
-                            <span className="font-medium">{formatNumber(post.impressions)}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-brand-navy-500">
-                            <Heart className="h-4 w-4" />
-                            <span className="font-medium">{formatNumber(post.likes)}</span>
-                          </div>
-                        </div>
-
-                        {/* External Link */}
-                        {post.external_url && (
-                          <a
-                            href={post.external_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-shrink-0 p-2 rounded-lg hover:bg-brand-neutral-100 transition-colors"
-                          >
-                            <ExternalLink className="h-4 w-4 text-brand-navy-400" />
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Separator */}
-              <div className="border-t border-brand-neutral-200 my-6" />
-
-              {/* Top Contributors Section */}
-              <Card className="border-brand-neutral-100">
-              <CardHeader>
-                <CardTitle className="text-brand-navy-900 flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-brand-brown" />
-                  Top Contributors
-                  <span className="text-sm font-normal text-brand-navy-500">
-                    ({getPeriodLabel(period)}{platform !== 'all' ? ` - ${platform === 'x' ? 'X' : 'LinkedIn'}` : ''})
-                  </span>
-                </CardTitle>
-              </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {leaderboard.map((entry, index) => {
@@ -585,6 +504,127 @@ export default function LeaderboardPage() {
                       );
                     })}
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Separator */}
+              <div className="border-t border-brand-neutral-200 my-6" />
+
+              {/* Top Posts Section */}
+              <Card className="border-brand-neutral-100">
+                <CardHeader>
+                  <CardTitle className="text-brand-navy-900 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-brand-brown" />
+                    Top Posts
+                    <span className="text-sm font-normal text-brand-navy-500">
+                      ({getPeriodLabel(period)}{platform !== 'all' ? ` - ${platform === 'x' ? 'X' : 'LinkedIn'}` : ''})
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {paginatedPosts.map((post, index) => {
+                      const globalRank = (topPostsPage - 1) * POSTS_PER_PAGE + index;
+                      return (
+                        <div
+                          key={post.id}
+                          className="flex items-start gap-3 p-3 rounded-lg border border-brand-neutral-100 hover:bg-brand-neutral-50 transition-colors"
+                        >
+                          {/* Rank */}
+                          <div className="flex-shrink-0 w-8 flex justify-center pt-1">
+                            {globalRank < 3 ? (
+                              <Medal className={cn("h-5 w-5", getMedalColor(globalRank))} />
+                            ) : (
+                              <span className="w-5 h-5 flex items-center justify-center text-sm font-medium text-brand-navy-400">
+                                {globalRank + 1}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Platform Icon */}
+                          <div className={cn(
+                            "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-white",
+                            post.channel === 'x' ? 'bg-black' : 'bg-blue-600'
+                          )}>
+                            {post.channel === 'x' ? (
+                              <XIcon className="h-4 w-4" />
+                            ) : (
+                              <Linkedin className="h-4 w-4" />
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-brand-navy-800 line-clamp-3">
+                              {post.content}
+                            </p>
+                            <div className="flex items-center gap-3 mt-2">
+                              <span className="text-xs font-medium text-brand-navy-600">
+                                {post.author_name}
+                              </span>
+                              <span className="text-xs text-brand-navy-400">
+                                {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Stats */}
+                          <div className="flex items-center gap-4 text-sm flex-shrink-0">
+                            <div className="flex items-center gap-1 text-brand-navy-500">
+                              <Eye className="h-4 w-4" />
+                              <span className="font-medium">{formatNumber(post.impressions)}</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-brand-navy-500">
+                              <Heart className="h-4 w-4" />
+                              <span className="font-medium">{formatNumber(post.likes)}</span>
+                            </div>
+                          </div>
+
+                          {/* External Link */}
+                          {post.external_url && (
+                            <a
+                              href={post.external_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-shrink-0 p-2 rounded-lg hover:bg-brand-neutral-100 transition-colors"
+                            >
+                              <ExternalLink className="h-4 w-4 text-brand-navy-400" />
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-brand-neutral-100">
+                      <span className="text-sm text-brand-navy-500">
+                        Showing {(topPostsPage - 1) * POSTS_PER_PAGE + 1}-{Math.min(topPostsPage * POSTS_PER_PAGE, allPostsSorted.length)} of {allPostsSorted.length} posts
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTopPostsPage(p => Math.max(1, p - 1))}
+                          disabled={topPostsPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        <span className="text-sm text-brand-navy-600 px-2">
+                          Page {topPostsPage} of {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTopPostsPage(p => Math.min(totalPages, p + 1))}
+                          disabled={topPostsPage === totalPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </>
