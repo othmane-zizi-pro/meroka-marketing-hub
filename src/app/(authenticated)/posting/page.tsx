@@ -1229,7 +1229,7 @@ export default function PostingPage() {
           {/* Recent Activity */}
           <Card className="border-brand-neutral-100">
             <CardHeader>
-              <CardTitle className="text-brand-navy-900">Recent Activity</CardTitle>
+              <CardTitle className="text-brand-navy-900">Recent Activity (All Platforms)</CardTitle>
             </CardHeader>
             <CardContent>
               {loadingPosts ? (
@@ -1420,7 +1420,7 @@ export default function PostingPage() {
             <CardHeader>
               <CardTitle className="text-brand-navy-900 flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
-                Leaderboard
+                Leaderboard (X)
               </CardTitle>
             </CardHeader>
             <CardContent>
