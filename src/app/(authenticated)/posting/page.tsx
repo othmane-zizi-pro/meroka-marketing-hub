@@ -276,16 +276,17 @@ export default function PostingPage() {
   // - https://www.linkedin.com/feed/update/urn:li:share:1234567890/
   // - https://www.linkedin.com/feed/update/urn:li:activity:1234567890/
   // - https://www.linkedin.com/posts/username_activity-1234567890-xxxx
+  // - https://www.linkedin.com/posts/username_post-title-activity-1234567890-xxxx
   const extractLinkedInPostId = (url: string): string | null => {
     // Match URN-style URLs
     const urnMatch = url.match(/urn:li:(share|activity|ugcPost):(\d+)/);
     if (urnMatch) {
       return `urn:li:${urnMatch[1]}:${urnMatch[2]}`;
     }
-    // Match posts-style URLs (activity ID in the URL)
-    const postsMatch = url.match(/linkedin\.com\/posts\/[^\/]+_activity-(\d+)/);
-    if (postsMatch) {
-      return `urn:li:activity:${postsMatch[1]}`;
+    // Match posts-style URLs (activity ID anywhere in the URL)
+    const activityMatch = url.match(/activity-(\d+)/);
+    if (activityMatch) {
+      return `urn:li:activity:${activityMatch[1]}`;
     }
     return null;
   };
