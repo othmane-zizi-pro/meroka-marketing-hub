@@ -22,14 +22,14 @@ import { useUser, signOut } from '@/hooks/useUser';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Activity Feed', href: '/activity', icon: Activity },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'LinkedIn', href: '/channels/linkedin', icon: Linkedin },
   { name: 'X', href: '/channels/twitter', icon: XIcon },
   { name: 'Instagram', href: '/channels/instagram', icon: Instagram },
   { name: 'Posting', href: '/posting', icon: Send },
   { name: 'Proofreading', href: '/proofreading', icon: FileEdit },
   { name: 'Scheduled', href: '/scheduled', icon: Clock },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Activity Feed', href: '/activity', icon: Activity },
   { name: 'Top Contributors', href: '/leaderboard', icon: Trophy },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
