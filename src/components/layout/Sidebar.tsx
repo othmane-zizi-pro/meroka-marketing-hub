@@ -15,7 +15,6 @@ import {
   FileEdit,
   Clock,
   Activity,
-  Shuffle,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { XIcon } from '@/components/ui/icons';
@@ -35,7 +34,6 @@ const navigation: NavItem[] = [
   { type: 'link', name: 'Posting', href: '/posting', icon: Send },
   { type: 'link', name: 'Proofreading', href: '/proofreading', icon: FileEdit },
   { type: 'link', name: 'Scheduled', href: '/scheduled', icon: Clock },
-  { type: 'link', name: 'Random', href: '/random', icon: Shuffle },
   { type: 'separator' },
   { type: 'link', name: 'Top Contributors', href: '/leaderboard', icon: Trophy },
   { type: 'separator' },
