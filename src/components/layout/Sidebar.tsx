@@ -27,7 +27,7 @@ const navigation = [
   { name: 'Posting', href: '/posting', icon: Send },
   { name: 'Proofreading', href: '/proofreading', icon: FileEdit },
   { name: 'Scheduled', href: '/scheduled', icon: Clock },
-  { name: 'KPIs', href: '/kpis', icon: BarChart3 },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   // { name: 'Leaderboard', href: '/leaderboard', icon: Trophy }, // Hidden for now
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
