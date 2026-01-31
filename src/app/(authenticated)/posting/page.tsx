@@ -39,6 +39,8 @@ interface SocialPost {
   author_name: string;
   author_email: string;
   created_at: string;
+  action_type?: string;
+  target_url?: string;
 }
 
 interface PostTypeConfig {
@@ -1242,6 +1244,15 @@ export default function PostingPage() {
                 <div className="space-y-4">
                   {recentPosts.map((post) => {
                     const metrics = post.channel === 'x' && post.external_id ? postMetrics[post.external_id] : null;
+                    const actionType = post.action_type || 'post';
+                    const actionLabels: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+                      post: { label: 'Posted', color: 'bg-green-100 text-green-700', icon: Send },
+                      comment: { label: 'Commented', color: 'bg-blue-100 text-blue-700', icon: MessageCircle },
+                      repost: { label: 'Reposted', color: 'bg-purple-100 text-purple-700', icon: Repeat2 },
+                      like: { label: 'Liked', color: 'bg-pink-100 text-pink-700', icon: Heart },
+                    };
+                    const actionInfo = actionLabels[actionType] || actionLabels.post;
+                    const ActionIcon = actionInfo.icon;
 
                     return (
                       <div
@@ -1250,6 +1261,27 @@ export default function PostingPage() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
+                            {/* Action type badge */}
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={cn(
+                                "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
+                                actionInfo.color
+                              )}>
+                                <ActionIcon className="h-3 w-3" />
+                                {actionInfo.label}
+                              </span>
+                              {post.target_url && (
+                                <a
+                                  href={post.target_url.startsWith('urn:') ? undefined : post.target_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-brand-navy-400 hover:text-brand-navy-600 truncate max-w-[200px]"
+                                  title={post.target_url}
+                                >
+                                  {post.target_url.startsWith('urn:') ? 'Target post' : 'View original'}
+                                </a>
+                              )}
+                            </div>
                             <p className="text-sm text-brand-navy-800 whitespace-pre-wrap break-words">
                               {post.content}
                             </p>

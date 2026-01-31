@@ -292,19 +292,26 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Save to database (only for content-creating actions)
+    // Save to database for all actions
     const authorName = userData?.name || authUser.email?.split('@')[0] || 'Unknown';
-    if (['tweet', 'reply', 'quote'].includes(postType) && content) {
-      await supabase.from('social_posts').insert({
-        channel: 'x',
-        content: content,
-        external_id: result.id,
-        external_url: resultUrl,
-        author_id: userData?.id || null,
-        author_email: authUser.email || '',
-        author_name: authorName,
-      });
-    }
+    const actionTypeMap: Record<string, string> = {
+      tweet: 'post',
+      reply: 'comment',
+      quote: 'repost',
+      retweet: 'repost',
+      like: 'like',
+    };
+    await supabase.from('social_posts').insert({
+      channel: 'x',
+      content: content || (postType === 'like' ? 'Liked a tweet' : postType === 'retweet' ? 'Retweeted' : ''),
+      external_id: result.id,
+      external_url: resultUrl,
+      author_id: userData?.id || null,
+      author_email: authUser.email || '',
+      author_name: authorName,
+      action_type: actionTypeMap[postType] || 'post',
+      target_url: targetTweetId ? `https://x.com/i/status/${targetTweetId}` : null,
+    });
 
     // Send Slack notification
     if (resultUrl) {

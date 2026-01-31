@@ -191,12 +191,14 @@ export async function POST(request: NextRequest) {
         // Save to database
         await supabase.from('social_posts').insert({
           channel: 'linkedin',
-          content: `Liked: ${targetPostUrn}`,
+          content: `Liked a post`,
           external_id: null,
           external_url: null,
           author_id: userData?.id || null,
           author_email: authUser.email || '',
           author_name: authorName,
+          action_type: 'like',
+          target_url: targetPostUrn,
         });
 
         return NextResponse.json({
@@ -245,12 +247,14 @@ export async function POST(request: NextRequest) {
         // Save to database
         await supabase.from('social_posts').insert({
           channel: 'linkedin',
-          content: `Comment on ${targetPostUrn}: ${content}`,
+          content: content,
           external_id: commentId,
           external_url: null,
           author_id: userData?.id || null,
           author_email: authUser.email || '',
           author_name: authorName,
+          action_type: 'comment',
+          target_url: targetPostUrn,
         });
 
         sendSlackNotification(
@@ -320,12 +324,14 @@ export async function POST(request: NextRequest) {
         // Save to database
         await supabase.from('social_posts').insert({
           channel: 'linkedin',
-          content: `Repost of ${targetPostUrn}: ${content}`,
+          content: content,
           external_id: postId,
           external_url: postUrl,
           author_id: userData?.id || null,
           author_email: authUser.email || '',
           author_name: authorName,
+          action_type: 'repost',
+          target_url: targetPostUrn,
         });
 
         sendSlackNotification(
@@ -585,6 +591,7 @@ export async function POST(request: NextRequest) {
       author_id: userData?.id || null,
       author_email: authUser.email || '',
       author_name: authorName,
+      action_type: 'post',
     });
 
     // Send Slack notification
