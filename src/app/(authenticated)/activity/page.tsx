@@ -16,6 +16,8 @@ import {
   Quote,
   ExternalLink,
   Activity,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
@@ -55,6 +57,8 @@ interface LinkedInMetrics {
   shares: number;
 }
 
+const POSTS_PER_PAGE = 10;
+
 export default function ActivityPage() {
   const [period, setPeriod] = useState<TimePeriod>('30d');
   const [platform, setPlatform] = useState<Platform>('all');
@@ -62,6 +66,7 @@ export default function ActivityPage() {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postMetrics, setPostMetrics] = useState<Record<string, XMetrics>>({});
   const [linkedinMetrics, setLinkedinMetrics] = useState<Record<string, LinkedInMetrics>>({});
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchPosts = async () => {
     setLoadingPosts(true);
@@ -145,8 +150,15 @@ export default function ActivityPage() {
   };
 
   useEffect(() => {
+    setCurrentPage(1);
     fetchPosts();
   }, [period, platform]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
+  const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
+  const endIndex = startIndex + POSTS_PER_PAGE;
+  const paginatedPosts = posts.slice(startIndex, endIndex);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -270,8 +282,9 @@ export default function ActivityPage() {
                   <p className="text-sm">No posts found for the selected filters.</p>
                 </div>
               ) : (
+                <>
                 <div className="space-y-3">
-                  {posts.map((post) => {
+                  {paginatedPosts.map((post) => {
                     const metrics = post.channel === 'x'
                       ? postMetrics[post.external_id]
                       : linkedinMetrics[post.external_id];
@@ -367,6 +380,39 @@ export default function ActivityPage() {
                     );
                   })}
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-brand-neutral-100 mt-4">
+                    <p className="text-sm text-brand-navy-500">
+                      Showing {startIndex + 1}-{Math.min(endIndex, posts.length)} of {posts.length} posts
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </Button>
+                      <span className="text-sm text-brand-navy-600 px-2">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                </>
               )}
             </CardContent>
           </Card>
