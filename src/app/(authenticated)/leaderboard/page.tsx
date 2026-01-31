@@ -1,289 +1,505 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar } from '@/components/ui/avatar';
-import { Trophy, CheckCircle, FileText, Star, Medal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Loader2,
+  Eye,
+  Heart,
+  Linkedin,
+  RefreshCw,
+  Trophy,
+  Medal,
+} from 'lucide-react';
+import { XIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
-// Hardcoded leaderboard data
-const leaderboardData = [
-  {
-    rank: 1,
-    name: 'Sarah Chen',
-    email: 'sarah.chen@meroka.com',
-    avatar: undefined,
-    postsProofread: 24,
-    postsPublished: 18,
-    totalContributions: 42,
-    streak: 12,
-  },
-  {
-    rank: 2,
-    name: 'Michael Park',
-    email: 'michael.park@meroka.com',
-    avatar: undefined,
-    postsProofread: 19,
-    postsPublished: 15,
-    totalContributions: 34,
-    streak: 8,
-  },
-  {
-    rank: 3,
-    name: 'Emma Wilson',
-    email: 'emma.wilson@meroka.com',
-    avatar: undefined,
-    postsProofread: 16,
-    postsPublished: 12,
-    totalContributions: 28,
-    streak: 5,
-  },
-  {
-    rank: 4,
-    name: 'James Rodriguez',
-    email: 'james.rodriguez@meroka.com',
-    avatar: undefined,
-    postsProofread: 14,
-    postsPublished: 10,
-    totalContributions: 24,
-    streak: 6,
-  },
-  {
-    rank: 5,
-    name: 'Lisa Thompson',
-    email: 'lisa.thompson@meroka.com',
-    avatar: undefined,
-    postsProofread: 12,
-    postsPublished: 8,
-    totalContributions: 20,
-    streak: 3,
-  },
-  {
-    rank: 6,
-    name: 'David Kim',
-    email: 'david.kim@meroka.com',
-    avatar: undefined,
-    postsProofread: 10,
-    postsPublished: 7,
-    totalContributions: 17,
-    streak: 4,
-  },
-  {
-    rank: 7,
-    name: 'Rachel Green',
-    email: 'rachel.green@meroka.com',
-    avatar: undefined,
-    postsProofread: 8,
-    postsPublished: 6,
-    totalContributions: 14,
-    streak: 2,
-  },
-  {
-    rank: 8,
-    name: 'Tom Anderson',
-    email: 'tom.anderson@meroka.com',
-    avatar: undefined,
-    postsProofread: 7,
-    postsPublished: 5,
-    totalContributions: 12,
-    streak: 1,
-  },
-  {
-    rank: 9,
-    name: 'Nina Patel',
-    email: 'nina.patel@meroka.com',
-    avatar: undefined,
-    postsProofread: 5,
-    postsPublished: 4,
-    totalContributions: 9,
-    streak: 2,
-  },
-  {
-    rank: 10,
-    name: 'Chris Lee',
-    email: 'chris.lee@meroka.com',
-    avatar: undefined,
-    postsProofread: 4,
-    postsPublished: 3,
-    totalContributions: 7,
-    streak: 1,
-  },
-];
+type TimePeriod = '7d' | '30d' | 'all';
+type Platform = 'all' | 'x' | 'linkedin';
 
-const topThree = leaderboardData.slice(0, 3);
-const restOfList = leaderboardData.slice(3);
+interface SocialPost {
+  id: string;
+  channel: string;
+  content: string;
+  external_id: string;
+  external_url: string;
+  author_name: string;
+  author_email: string;
+  created_at: string;
+}
 
-function PodiumCard({ employee, position }: { employee: typeof leaderboardData[0]; position: 1 | 2 | 3 }) {
-  const styles = {
-    1: {
-      height: 'h-32',
-      bg: 'bg-gradient-to-b from-yellow-400 to-yellow-500',
-      medal: '🥇',
-      ring: 'ring-2 ring-yellow-400',
-    },
-    2: {
-      height: 'h-24',
-      bg: 'bg-gradient-to-b from-gray-300 to-gray-400',
-      medal: '🥈',
-      ring: '',
-    },
-    3: {
-      height: 'h-20',
-      bg: 'bg-gradient-to-b from-amber-600 to-amber-700',
-      medal: '🥉',
-      ring: '',
-    },
-  }[position];
+interface XMetrics {
+  likes: number;
+  retweets: number;
+  replies: number;
+  quotes: number;
+  impressions?: number;
+}
 
-  return (
-    <div className="flex flex-col items-center">
-      <div className={cn(
-        "w-full bg-white rounded-xl p-4 mb-2 shadow-lg",
-        styles.ring
-      )}>
-        <div className="flex flex-col items-center">
-          <Avatar alt={employee.name} size="lg" />
-          <p className="mt-2 font-semibold text-brand-navy-900 text-center">{employee.name}</p>
-          <p className="text-xs text-brand-navy-500">{employee.totalContributions} contributions</p>
-          <div className="flex items-center gap-3 mt-2 text-xs text-brand-navy-600">
-            <span className="flex items-center gap-1">
-              <CheckCircle className="h-3 w-3" />
-              {employee.postsProofread}
-            </span>
-            <span className="flex items-center gap-1">
-              <FileText className="h-3 w-3" />
-              {employee.postsPublished}
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="text-3xl mb-1">{styles.medal}</div>
-      <div className={cn(
-        "w-full rounded-t-lg flex items-center justify-center",
-        styles.height,
-        styles.bg
-      )}>
-        <span className="text-white text-2xl font-bold">{position}</span>
-      </div>
-    </div>
-  );
+interface LinkedInMetrics {
+  impressions: number;
+  uniqueImpressions: number;
+  clicks: number;
+  likes: number;
+  comments: number;
+  shares: number;
+}
+
+interface LeaderboardEntry {
+  author_name: string;
+  author_email: string;
+  postCount: number;
+  totalImpressions: number;
+  totalLikes: number;
 }
 
 export default function LeaderboardPage() {
+  const [period, setPeriod] = useState<TimePeriod>('30d');
+  const [platform, setPlatform] = useState<Platform>('all');
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [postMetrics, setPostMetrics] = useState<Record<string, XMetrics>>({});
+  const [linkedinMetrics, setLinkedinMetrics] = useState<Record<string, LinkedInMetrics>>({});
+
+  const fetchPosts = async () => {
+    setLoadingPosts(true);
+    try {
+      const supabase = createClient();
+
+      // Calculate date filter
+      let dateFilter: Date | null = null;
+      if (period === '7d') {
+        dateFilter = new Date();
+        dateFilter.setDate(dateFilter.getDate() - 7);
+      } else if (period === '30d') {
+        dateFilter = new Date();
+        dateFilter.setDate(dateFilter.getDate() - 30);
+      }
+
+      let query = supabase
+        .from('social_posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Apply platform filter
+      if (platform !== 'all') {
+        query = query.eq('channel', platform);
+      }
+
+      // Apply date filter
+      if (dateFilter) {
+        query = query.gte('created_at', dateFilter.toISOString());
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching posts:', error);
+        return;
+      }
+
+      setPosts(data || []);
+
+      // Fetch metrics for X posts
+      const xPosts = (data || []).filter(p => p.channel === 'x' && p.external_id);
+      if (xPosts.length > 0) {
+        fetchXMetrics(xPosts.map(p => p.external_id));
+      }
+
+      // Fetch metrics for LinkedIn posts
+      const linkedinPosts = (data || []).filter(p => p.channel === 'linkedin' && p.external_id);
+      if (linkedinPosts.length > 0) {
+        fetchLinkedInMetrics(linkedinPosts.map(p => p.external_id));
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
+
+  const fetchXMetrics = async (ids: string[]) => {
+    try {
+      const response = await fetch(`/api/post/x/metrics?ids=${ids.join(',')}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPostMetrics(data.metrics || {});
+      }
+    } catch (error) {
+      console.error('Error fetching X metrics:', error);
+    }
+  };
+
+  const fetchLinkedInMetrics = async (ids: string[]) => {
+    try {
+      const response = await fetch(`/api/post/linkedin/metrics?ids=${ids.join(',')}`);
+      if (response.ok) {
+        const data = await response.json();
+        setLinkedinMetrics(data.metrics || {});
+      }
+    } catch (error) {
+      console.error('Error fetching LinkedIn metrics:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, [period, platform]);
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toLocaleString();
+  };
+
+  const getPeriodLabel = (p: TimePeriod) => {
+    switch (p) {
+      case '7d': return 'Last 7 Days';
+      case '30d': return 'Last 30 Days';
+      case 'all': return 'All Time';
+    }
+  };
+
+  // Calculate leaderboard from posts
+  const calculateLeaderboard = (): LeaderboardEntry[] => {
+    const contributorMap = new Map<string, LeaderboardEntry>();
+
+    posts.forEach((post) => {
+      const key = post.author_email;
+      const existing = contributorMap.get(key);
+
+      const metrics = post.channel === 'x'
+        ? postMetrics[post.external_id]
+        : linkedinMetrics[post.external_id];
+      const impressions = post.channel === 'x'
+        ? (metrics as XMetrics)?.impressions || 0
+        : (metrics as LinkedInMetrics)?.impressions || 0;
+      const likes = post.channel === 'x'
+        ? (metrics as XMetrics)?.likes || 0
+        : (metrics as LinkedInMetrics)?.likes || 0;
+
+      if (existing) {
+        existing.postCount++;
+        existing.totalImpressions += impressions;
+        existing.totalLikes += likes;
+      } else {
+        contributorMap.set(key, {
+          author_name: post.author_name,
+          author_email: post.author_email,
+          postCount: 1,
+          totalImpressions: impressions,
+          totalLikes: likes,
+        });
+      }
+    });
+
+    // Sort by impressions (primary), post count (secondary)
+    return Array.from(contributorMap.values())
+      .sort((a, b) => {
+        if (b.totalImpressions !== a.totalImpressions) {
+          return b.totalImpressions - a.totalImpressions;
+        }
+        return b.postCount - a.postCount;
+      });
+  };
+
+  const leaderboard = calculateLeaderboard();
+  const topThree = leaderboard.slice(0, 3);
+  const restOfList = leaderboard.slice(3);
+
+  const getMedalColor = (index: number) => {
+    if (index === 0) return 'text-yellow-500';
+    if (index === 1) return 'text-gray-400';
+    if (index === 2) return 'text-amber-600';
+    return 'text-brand-navy-400';
+  };
+
+  const getPodiumBg = (index: number) => {
+    if (index === 0) return 'bg-gradient-to-b from-yellow-400 to-yellow-500';
+    if (index === 1) return 'bg-gradient-to-b from-gray-300 to-gray-400';
+    if (index === 2) return 'bg-gradient-to-b from-amber-600 to-amber-700';
+    return '';
+  };
+
+  const getPodiumHeight = (index: number) => {
+    if (index === 0) return 'h-32';
+    if (index === 1) return 'h-24';
+    if (index === 2) return 'h-20';
+    return '';
+  };
+
   return (
     <div className="flex flex-col h-full">
       <Header
         title="Leaderboard"
-        subtitle="Employee contributions to content creation"
+        subtitle="Top contributors ranked by performance"
       />
 
-      <div className="flex-1 overflow-auto p-6 space-y-6">
-        {/* Podium Section */}
-        <Card className="bg-gradient-to-br from-brand-navy-800 to-brand-navy-900 border-0">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Trophy className="h-6 w-6 text-yellow-400" />
-              <h2 className="text-xl font-bold text-white">Top Contributors</h2>
+      <div className="flex-1 overflow-auto p-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* Time Period Selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-brand-navy-600">Period:</span>
+              <div className="flex rounded-lg border border-brand-neutral-200 overflow-hidden">
+                {(['7d', '30d', 'all'] as TimePeriod[]).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPeriod(p)}
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium transition-colors",
+                      period === p
+                        ? "bg-brand-brown text-white"
+                        : "bg-white text-brand-navy-600 hover:bg-brand-neutral-50"
+                    )}
+                  >
+                    {p === '7d' ? '7D' : p === '30d' ? '30D' : 'All'}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="flex items-end justify-center gap-4">
-              {/* 2nd Place */}
-              <div className="w-full max-w-[180px]">
-                <PodiumCard employee={topThree[1]} position={2} />
-              </div>
-              {/* 1st Place */}
-              <div className="w-full max-w-[200px]">
-                <PodiumCard employee={topThree[0]} position={1} />
-              </div>
-              {/* 3rd Place */}
-              <div className="w-full max-w-[180px]">
-                <PodiumCard employee={topThree[2]} position={3} />
+            {/* Platform Selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-brand-navy-600">Platform:</span>
+              <div className="flex rounded-lg border border-brand-neutral-200 overflow-hidden">
+                <button
+                  onClick={() => setPlatform('all')}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium transition-colors",
+                    platform === 'all'
+                      ? "bg-brand-brown text-white"
+                      : "bg-white text-brand-navy-600 hover:bg-brand-neutral-50"
+                  )}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setPlatform('x')}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5",
+                    platform === 'x'
+                      ? "bg-black text-white"
+                      : "bg-white text-brand-navy-600 hover:bg-brand-neutral-50"
+                  )}
+                >
+                  <XIcon className="h-3.5 w-3.5" />
+                  X
+                </button>
+                <button
+                  onClick={() => setPlatform('linkedin')}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5",
+                    platform === 'linkedin'
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-brand-navy-600 hover:bg-brand-neutral-50"
+                  )}
+                >
+                  <Linkedin className="h-3.5 w-3.5" />
+                  LinkedIn
+                </button>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Stats Legend */}
-        <div className="flex items-center justify-center gap-6 text-sm text-brand-navy-600">
-          <span className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
-            Posts Proofread
-          </span>
-          <span className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Posts Published
-          </span>
-          <span className="flex items-center gap-2">
-            <Star className="h-4 w-4" />
-            Day Streak
-          </span>
-        </div>
+            {/* Refresh Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchPosts}
+              disabled={loadingPosts}
+            >
+              <RefreshCw className={cn("h-4 w-4 mr-2", loadingPosts && "animate-spin")} />
+              Refresh
+            </Button>
+          </div>
 
-        {/* Full Leaderboard */}
-        <Card className="border-brand-neutral-100">
-          <CardHeader>
-            <CardTitle className="text-brand-navy-900">All Contributors</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-brand-neutral-200">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-brand-navy-600">Rank</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-brand-navy-600">Employee</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-brand-navy-600">Proofread</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-brand-navy-600">Published</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-brand-navy-600">Total</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-brand-navy-600">Streak</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboardData.map((employee) => (
-                    <tr key={employee.email} className="border-b border-brand-neutral-100 hover:bg-brand-neutral-50">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          {employee.rank <= 3 ? (
-                            <span className="text-xl">
-                              {employee.rank === 1 ? '🥇' : employee.rank === 2 ? '🥈' : '🥉'}
-                            </span>
+          {loadingPosts ? (
+            <div className="flex items-center justify-center py-24">
+              <Loader2 className="h-8 w-8 animate-spin text-brand-brown" />
+            </div>
+          ) : leaderboard.length === 0 ? (
+            <Card className="border-brand-neutral-100">
+              <CardContent className="py-12">
+                <div className="flex flex-col items-center justify-center text-brand-navy-400">
+                  <Trophy className="h-12 w-12 mb-3 opacity-50" />
+                  <p className="text-sm">No contributors found for the selected filters.</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Podium Section */}
+              {topThree.length > 0 && (
+                <Card className="bg-gradient-to-br from-brand-navy-800 to-brand-navy-900 border-0">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-2 mb-6">
+                      <Trophy className="h-6 w-6 text-yellow-400" />
+                      <h2 className="text-xl font-bold text-white">Top Contributors</h2>
+                      <span className="text-sm font-normal text-brand-navy-300 ml-2">
+                        ({getPeriodLabel(period)}{platform !== 'all' ? ` - ${platform === 'x' ? 'X' : 'LinkedIn'}` : ''})
+                      </span>
+                    </div>
+
+                    <div className="flex items-end justify-center gap-4">
+                      {/* 2nd Place */}
+                      {topThree[1] && (
+                        <div className="w-full max-w-[180px]">
+                          <div className="bg-white rounded-xl p-4 mb-2 shadow-lg">
+                            <div className="flex flex-col items-center">
+                              <div className="w-12 h-12 rounded-full bg-brand-navy-100 flex items-center justify-center">
+                                <span className="text-lg font-semibold text-brand-navy-700">
+                                  {topThree[1].author_name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <p className="mt-2 font-semibold text-brand-navy-900 text-center text-sm">{topThree[1].author_name}</p>
+                              <p className="text-xs text-brand-navy-500">{topThree[1].postCount} posts</p>
+                              <div className="flex items-center gap-3 mt-2 text-xs text-brand-navy-600">
+                                <span className="flex items-center gap-1">
+                                  <Eye className="h-3 w-3" />
+                                  {formatNumber(topThree[1].totalImpressions)}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Heart className="h-3 w-3" />
+                                  {formatNumber(topThree[1].totalLikes)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex justify-center mb-1">
+                            <Medal className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <div className={cn("w-full rounded-t-lg flex items-center justify-center", getPodiumHeight(1), getPodiumBg(1))}>
+                            <span className="text-white text-2xl font-bold">2</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 1st Place */}
+                      {topThree[0] && (
+                        <div className="w-full max-w-[200px]">
+                          <div className="bg-white rounded-xl p-4 mb-2 shadow-lg ring-2 ring-yellow-400">
+                            <div className="flex flex-col items-center">
+                              <div className="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center">
+                                <span className="text-xl font-semibold text-yellow-700">
+                                  {topThree[0].author_name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <p className="mt-2 font-semibold text-brand-navy-900 text-center">{topThree[0].author_name}</p>
+                              <p className="text-xs text-brand-navy-500">{topThree[0].postCount} posts</p>
+                              <div className="flex items-center gap-3 mt-2 text-xs text-brand-navy-600">
+                                <span className="flex items-center gap-1">
+                                  <Eye className="h-3 w-3" />
+                                  {formatNumber(topThree[0].totalImpressions)}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Heart className="h-3 w-3" />
+                                  {formatNumber(topThree[0].totalLikes)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex justify-center mb-1">
+                            <Medal className="h-8 w-8 text-yellow-500" />
+                          </div>
+                          <div className={cn("w-full rounded-t-lg flex items-center justify-center", getPodiumHeight(0), getPodiumBg(0))}>
+                            <span className="text-white text-2xl font-bold">1</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3rd Place */}
+                      {topThree[2] && (
+                        <div className="w-full max-w-[180px]">
+                          <div className="bg-white rounded-xl p-4 mb-2 shadow-lg">
+                            <div className="flex flex-col items-center">
+                              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                                <span className="text-lg font-semibold text-amber-700">
+                                  {topThree[2].author_name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <p className="mt-2 font-semibold text-brand-navy-900 text-center text-sm">{topThree[2].author_name}</p>
+                              <p className="text-xs text-brand-navy-500">{topThree[2].postCount} posts</p>
+                              <div className="flex items-center gap-3 mt-2 text-xs text-brand-navy-600">
+                                <span className="flex items-center gap-1">
+                                  <Eye className="h-3 w-3" />
+                                  {formatNumber(topThree[2].totalImpressions)}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Heart className="h-3 w-3" />
+                                  {formatNumber(topThree[2].totalLikes)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex justify-center mb-1">
+                            <Medal className="h-8 w-8 text-amber-600" />
+                          </div>
+                          <div className={cn("w-full rounded-t-lg flex items-center justify-center", getPodiumHeight(2), getPodiumBg(2))}>
+                            <span className="text-white text-2xl font-bold">3</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Full Leaderboard Table */}
+              <Card className="border-brand-neutral-100">
+                <CardHeader>
+                  <CardTitle className="text-brand-navy-900">All Contributors</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {leaderboard.map((entry, index) => (
+                      <div
+                        key={entry.author_email}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-brand-neutral-100 hover:bg-brand-neutral-50 transition-colors"
+                      >
+                        {/* Rank */}
+                        <div className="flex-shrink-0 w-10 flex justify-center">
+                          {index < 3 ? (
+                            <Medal className={cn("h-6 w-6", getMedalColor(index))} />
                           ) : (
-                            <span className="w-8 h-8 flex items-center justify-center rounded-full bg-brand-neutral-100 text-sm font-medium text-brand-navy-700">
-                              {employee.rank}
+                            <span className="w-6 h-6 flex items-center justify-center text-sm font-medium text-brand-navy-400">
+                              {index + 1}
                             </span>
                           )}
                         </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar alt={employee.name} size="sm" />
-                          <div>
-                            <p className="text-sm font-medium text-brand-navy-900">{employee.name}</p>
-                            <p className="text-xs text-brand-navy-500">{employee.email}</p>
+
+                        {/* Author Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-brand-navy-900 truncate">
+                            {entry.author_name}
+                          </p>
+                          <p className="text-xs text-brand-navy-400">
+                            {entry.postCount} {entry.postCount === 1 ? 'post' : 'posts'}
+                          </p>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="flex items-center gap-6 text-sm">
+                          <div className="text-right">
+                            <p className="font-semibold text-brand-navy-900">{formatNumber(entry.totalImpressions)}</p>
+                            <p className="text-xs text-brand-navy-400">impressions</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-brand-navy-900">{formatNumber(entry.totalLikes)}</p>
+                            <p className="text-xs text-brand-navy-400">likes</p>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="text-sm text-brand-navy-700">{employee.postsProofread}</span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="text-sm text-brand-navy-700">{employee.postsPublished}</span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="text-sm font-semibold text-brand-navy-900">{employee.totalContributions}</span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="inline-flex items-center gap-1 text-sm text-brand-navy-700">
-                          <Star className="h-3 w-3 text-yellow-500" />
-                          {employee.streak}d
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

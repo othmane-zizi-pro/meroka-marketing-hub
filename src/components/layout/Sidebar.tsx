@@ -14,6 +14,7 @@ import {
   Send,
   FileEdit,
   Clock,
+  Activity,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { XIcon } from '@/components/ui/icons';
@@ -28,7 +29,8 @@ const navigation = [
   { name: 'Proofreading', href: '/proofreading', icon: FileEdit },
   { name: 'Scheduled', href: '/scheduled', icon: Clock },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  // { name: 'Leaderboard', href: '/leaderboard', icon: Trophy }, // Hidden for now
+  { name: 'Activity Feed', href: '/activity', icon: Activity },
+  { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
