@@ -137,12 +137,23 @@ export default function ProofreadingPage() {
         method: 'POST',
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        // Remove from list since it's no longer pending_review
+        // Remove from list since it's now published
         setDrafts(prev => prev.filter(d => d.id !== draftId));
+
+        // Show success with link to post
+        if (data.externalUrl) {
+          const viewPost = confirm('Post published successfully! Click OK to view it.');
+          if (viewPost) {
+            window.open(data.externalUrl, '_blank');
+          }
+        } else {
+          alert('Post published successfully!');
+        }
       } else {
-        const data = await response.json();
-        alert(data.error || 'Failed to approve');
+        alert(data.error || 'Failed to approve and publish');
       }
     } catch (error) {
       console.error('Error approving draft:', error);
