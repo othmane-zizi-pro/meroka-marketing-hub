@@ -112,8 +112,16 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-    } else if (actionType === 'repost' || actionType === 'comment') {
-      // Repost and comment need content and target
+    } else if (actionType === 'repost') {
+      // Repost needs target, content is optional
+      if (!targetPostUrn) {
+        return NextResponse.json(
+          { error: 'Target post URL is required' },
+          { status: 400 }
+        );
+      }
+    } else if (actionType === 'comment') {
+      // Comment needs both content and target
       if (!content || content.trim().length === 0) {
         return NextResponse.json(
           { error: 'Content is required' },
@@ -277,12 +285,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Handle Repost (share with commentary)
+    // Handle Repost (share with optional commentary)
     if (actionType === 'repost') {
       try {
-        const repostBody = {
+        const repostBody: any = {
           author: `urn:li:organization:${organizationId}`,
-          commentary: content,
           visibility: 'PUBLIC',
           distribution: {
             feedDistribution: 'MAIN_FEED',
@@ -295,6 +302,11 @@ export async function POST(request: NextRequest) {
             parent: targetPostUrn,
           },
         };
+
+        // Only add commentary if provided
+        if (content && content.trim()) {
+          repostBody.commentary = content.trim();
+        }
 
         const repostResponse = await fetch('https://api.linkedin.com/rest/posts', {
           method: 'POST',
@@ -324,7 +336,7 @@ export async function POST(request: NextRequest) {
         // Save to database
         await supabase.from('social_posts').insert({
           channel: 'linkedin',
-          content: content,
+          content: content?.trim() || 'Reposted',
           external_id: postId,
           external_url: postUrl,
           author_id: userData?.id || null,
@@ -337,7 +349,7 @@ export async function POST(request: NextRequest) {
         sendSlackNotification(
           authorName,
           connection.organization_name || 'Company',
-          `Repost: ${content}`,
+          content?.trim() ? `Repost: ${content}` : 'Reposted a post',
           postUrl
         );
 

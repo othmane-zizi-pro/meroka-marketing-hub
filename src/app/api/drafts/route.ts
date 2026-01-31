@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate based on action type
-    const needsContent = actionType !== 'like';
+    const needsContent = !['like', 'repost'].includes(actionType);
     const needsTarget = ['repost', 'comment', 'like'].includes(actionType);
 
     if (needsContent && !content?.trim()) {

@@ -71,7 +71,7 @@ interface LinkedInPostTypeConfig {
 
 const linkedinPostTypes: LinkedInPostTypeConfig[] = [
   { id: 'post', name: 'Post', icon: Send, description: 'Create a new post', requiresContent: true, requiresPostUrl: false },
-  { id: 'repost', name: 'Repost', icon: Repeat2, description: 'Share with your commentary', requiresContent: true, requiresPostUrl: true },
+  { id: 'repost', name: 'Repost', icon: Repeat2, description: 'Share with optional commentary', requiresContent: false, requiresPostUrl: true },
   { id: 'comment', name: 'Comment', icon: MessageCircle, description: 'Comment on a post', requiresContent: true, requiresPostUrl: true },
   { id: 'like', name: 'Like', icon: Heart, description: 'Like a post', requiresContent: false, requiresPostUrl: true },
 ];
