@@ -193,7 +193,7 @@ export function RandomPostCard({ post, onEdit, onAction }: RandomPostCardProps) 
           <div className="p-3 bg-brand-neutral-50 rounded-lg">
             <p className="text-xs text-brand-navy-500 mb-1">Inspired by:</p>
             <p className="text-sm text-brand-navy-700 line-clamp-2">
-              "{post.inspiration.content?.substring(0, 150)}{post.inspiration.content && post.inspiration.content.length > 150 ? '...' : ''}"
+              &ldquo;{post.inspiration.content?.substring(0, 150)}{post.inspiration.content && post.inspiration.content.length > 150 ? '...' : ''}&rdquo;
             </p>
             {post.inspiration.external_url && (
               <a
@@ -266,7 +266,7 @@ export function RandomPostCard({ post, onEdit, onAction }: RandomPostCardProps) 
                   </p>
                   {edit.edit_summary && (
                     <p className="text-sm text-brand-navy-700 italic">
-                      "{edit.edit_summary}"
+                      &ldquo;{edit.edit_summary}&rdquo;
                     </p>
                   )}
                 </div>
