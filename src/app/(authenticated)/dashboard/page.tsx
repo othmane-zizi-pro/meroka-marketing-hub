@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/hooks/useUser';
-import { Linkedin, Instagram, ArrowRight, TrendingUp, Loader2 } from 'lucide-react';
+import { Linkedin, Instagram, ArrowRight, TrendingUp, Loader2, Users } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { createClient } from '@/lib/supabase/client';
 
@@ -163,6 +163,21 @@ export default function DashboardPage() {
         <div>
           <h2 className="text-lg font-semibold mb-4 text-brand-navy-900">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link href="/channels/linkedin?campaign=employee-voices">
+              <Card className="cursor-pointer transition-all hover:shadow-md hover:border-brand-brown/50 border-brand-neutral-100">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-brown text-white">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-brand-navy-900">Employee Voices</h3>
+                    <p className="text-sm text-brand-navy-600 mt-1">
+                      View and engage with employee posts
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
             <Link href="/posting">
               <Card className="cursor-pointer transition-all hover:shadow-md hover:border-brand-brown/50 border-brand-neutral-100">
                 <CardContent className="p-6 flex items-center gap-4">

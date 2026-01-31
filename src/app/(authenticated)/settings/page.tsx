@@ -52,7 +52,7 @@ export default function SettingsPage() {
       <Header title="Settings" subtitle="Manage your AI voice profile" />
 
       <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-3xl space-y-6">
+        <div className="max-w-3xl mx-auto space-y-6">
           {/* Profile Section */}
           <Card>
             <CardHeader>

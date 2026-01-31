@@ -5,6 +5,7 @@ import { Heart, MessageCircle, Send, ChevronDown, ChevronUp, Pencil, Check, X, T
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { PostBadges, SourceType } from '@/components/posts/PostBadges';
+import { EditTimelineModal } from '@/components/posts/EditTimelineModal';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { formatDistanceToNow } from '@/lib/utils';
@@ -27,6 +28,8 @@ interface EmployeePostCardProps {
     likes_count: number;
     created_at: string;
     status: string;
+    original_content?: string | null;
+    updated_at?: string | null;
   };
   currentUserEmail: string;
   initialLiked?: boolean;
@@ -60,6 +63,7 @@ export function EmployeePostCard({
   const [editContent, setEditContent] = useState(post.content);
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
 
   // Check if current user is the featured employee (can edit)
   const canEdit = currentUserEmail && post.author_email &&
@@ -132,6 +136,21 @@ export function EmployeePostCard({
           post_id: post.id,
           user_email: currentUserEmail,
         });
+
+        // Create notification for post author (if not liking own post)
+        if (currentUserEmail.toLowerCase() !== post.author_email.toLowerCase()) {
+          const { data: { user } } = await supabase.auth.getUser();
+          const actorName = user?.user_metadata?.full_name || user?.user_metadata?.name || currentUserEmail.split('@')[0];
+
+          await supabase.from('notifications').insert({
+            user_email: post.author_email,
+            type: 'like',
+            post_id: post.id,
+            actor_email: currentUserEmail,
+            actor_name: actorName,
+            message: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : ''),
+          });
+        }
       } else {
         await supabase.from('post_likes').delete().match({
           post_id: post.id,
@@ -168,6 +187,55 @@ export function EmployeePostCard({
 
       if (data && !error) {
         setComments([...comments, data]);
+
+        // Create notifications
+        const notificationsToCreate: Array<{
+          user_email: string;
+          type: string;
+          post_id: string;
+          actor_email: string;
+          actor_name: string;
+          message: string;
+        }> = [];
+
+        // Notify post author (if commenter is not the author)
+        if (currentUserEmail.toLowerCase() !== post.author_email.toLowerCase()) {
+          notificationsToCreate.push({
+            user_email: post.author_email,
+            type: 'comment',
+            post_id: post.id,
+            actor_email: currentUserEmail,
+            actor_name: userName,
+            message: newComment.trim().substring(0, 50) + (newComment.trim().length > 50 ? '...' : ''),
+          });
+        }
+
+        // Notify other commenters on this post (reply notification)
+        const otherCommenters = new Set(
+          comments
+            .map(c => c.user_email.toLowerCase())
+            .filter(email =>
+              email !== currentUserEmail.toLowerCase() &&
+              email !== post.author_email.toLowerCase()
+            )
+        );
+
+        otherCommenters.forEach(email => {
+          notificationsToCreate.push({
+            user_email: email,
+            type: 'reply',
+            post_id: post.id,
+            actor_email: currentUserEmail,
+            actor_name: userName,
+            message: newComment.trim().substring(0, 50) + (newComment.trim().length > 50 ? '...' : ''),
+          });
+        });
+
+        // Insert all notifications
+        if (notificationsToCreate.length > 0) {
+          await supabase.from('notifications').insert(notificationsToCreate);
+        }
+
         setNewComment('');
       }
     } catch (error) {
@@ -195,7 +263,11 @@ export function EmployeePostCard({
           </div>
           <div className="flex items-center gap-2">
             {sourceType && (
-              <PostBadges sourceType={sourceType} isEdited={isEdited} />
+              <PostBadges
+                sourceType={sourceType}
+                isEdited={isEdited}
+                onEditedClick={() => setShowTimelineModal(true)}
+              />
             )}
             {canEdit && !isEditing && (
               <button
@@ -327,6 +399,18 @@ export function EmployeePostCard({
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Edit Timeline Modal */}
+      {showTimelineModal && (
+        <EditTimelineModal
+          postId={post.id}
+          originalContent={post.original_content || null}
+          currentContent={post.content}
+          createdAt={post.created_at}
+          updatedAt={post.updated_at}
+          onClose={() => setShowTimelineModal(false)}
+        />
       )}
     </div>
   );
