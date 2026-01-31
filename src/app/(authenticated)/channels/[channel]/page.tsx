@@ -230,7 +230,7 @@ export default function ChannelPage() {
     ? posts
     : posts.filter(p => p.campaign_id === selectedCampaign);
 
-  // Get unique authors for Employee Voices filter
+  // Get unique authors for Employee Voices filter (sorted alphabetically)
   const getUniqueAuthors = () => {
     const authorMap = new Map<string, string>();
     campaignFilteredPosts.forEach(post => {
@@ -238,7 +238,9 @@ export default function ChannelPage() {
         authorMap.set(post.author_email, post.author_name);
       }
     });
-    return Array.from(authorMap.entries()).map(([email, name]) => ({ email, name }));
+    return Array.from(authorMap.entries())
+      .map(([email, name]) => ({ email, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   };
 
   const uniqueAuthors = getUniqueAuthors();
@@ -330,6 +332,18 @@ export default function ChannelPage() {
               </div>
             )}
 
+            {/* Podium for top 3 - only for Employee Voices campaign */}
+            {topPosts.length >= 3 && isEmployeeVoices && (
+              <Podium
+                posts={topPosts}
+                onPostClick={(podiumPost) => {
+                  // Find the full post data
+                  const fullPost = posts.find(p => p.id === podiumPost.id);
+                  if (fullPost) setModalPost(fullPost);
+                }}
+              />
+            )}
+
             {/* Compose Post Card - only show when a specific campaign is selected */}
             {selectedCampaign !== 'all' && (
               <ComposePostCard
@@ -348,18 +362,6 @@ export default function ChannelPage() {
               </div>
             ) : (
               <>
-                {/* Podium for top 3 - only for Employee Voices campaign */}
-                {topPosts.length >= 3 && isEmployeeVoices && (
-                  <Podium
-                    posts={topPosts}
-                    onPostClick={(podiumPost) => {
-                      // Find the full post data
-                      const fullPost = posts.find(p => p.id === podiumPost.id);
-                      if (fullPost) setModalPost(fullPost);
-                    }}
-                  />
-                )}
-
                 {/* Author filter - only for Employee Voices campaign */}
                 {isEmployeeVoices && uniqueAuthors.length > 1 && (
                   <div className="flex items-center gap-3 mb-4">
