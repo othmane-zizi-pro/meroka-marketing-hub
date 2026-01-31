@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Podium } from '@/components/posts/Podium';
 import { PostModal } from '@/components/posts/PostModal';
@@ -21,9 +21,9 @@ const channelNames: Record<Channel, string> = {
 };
 
 const channelDescriptions: Record<Channel, string> = {
-  linkedin: 'AI-generated thought leadership posts',
-  twitter: 'Quick updates, threads, and engagement with the tech community',
-  instagram: 'Visual content showcasing company culture and behind-the-scenes',
+  linkedin: 'Review and publish AI-generated campaign content',
+  twitter: 'Review and publish AI-generated campaign content',
+  instagram: 'Review and publish AI-generated campaign content',
 };
 
 interface Campaign {
@@ -40,6 +40,7 @@ interface Post {
   author_avatar?: string;
   likes_count: number;
   created_at: string;
+  updated_at: string | null;
   status: string;
   campaign_id: string;
   campaign_name: string;
@@ -59,11 +60,14 @@ interface Comment {
 
 export default function ChannelPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const channel = params.channel as Channel;
   const { user } = useUser();
+  const campaignParam = searchParams.get('campaign');
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<string>('all');
+  const [initialCampaignSet, setInitialCampaignSet] = useState(false);
   const [selectedAuthor, setSelectedAuthor] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -77,23 +81,56 @@ export default function ChannelPage() {
   const description = channelDescriptions[channel] || '';
 
   useEffect(() => {
-    if (channel === 'linkedin') {
+    if (channel === 'linkedin' || channel === 'twitter') {
       fetchCampaignsAndPosts();
     } else {
       setLoading(false);
     }
   }, [channel, user?.email]);
 
+  // Handle campaign query param (e.g., ?campaign=employee-voices)
+  useEffect(() => {
+    if (campaignParam === 'employee-voices' && campaigns.length > 0 && !initialCampaignSet) {
+      const employeeVoicesCampaign = campaigns.find(c => c.name === 'Employee Voices');
+      if (employeeVoicesCampaign) {
+        setSelectedCampaign(employeeVoicesCampaign.id);
+        setInitialCampaignSet(true);
+      }
+    }
+  }, [campaignParam, campaigns, initialCampaignSet]);
+
   const fetchCampaignsAndPosts = async () => {
     const supabase = createClient();
 
     try {
+      // Map URL channel param to database platform
+      const platformMap: Record<string, string> = {
+        linkedin: 'linkedin',
+        twitter: 'x',
+        instagram: 'instagram',
+      };
+      const platform = platformMap[channel] || channel;
+
+      // Get channel ID for filtering campaigns
+      const { data: channelData } = await supabase
+        .from('channels')
+        .select('id')
+        .eq('platform', platform)
+        .single();
+
       // First fetch all active campaigns for this channel
-      const { data: campaignsData } = await supabase
+      let campaignsQuery = supabase
         .from('campaigns')
         .select('id, name, type')
         .eq('is_active', true)
         .order('name');
+
+      // Filter by channel if we found one
+      if (channelData?.id) {
+        campaignsQuery = campaignsQuery.eq('channel_id', channelData.id);
+      }
+
+      const { data: campaignsData } = await campaignsQuery;
 
       setCampaigns(campaignsData || []);
 
@@ -105,6 +142,7 @@ export default function ChannelPage() {
           content,
           likes_count,
           created_at,
+          updated_at,
           status,
           author_id,
           campaign_id,
@@ -149,6 +187,7 @@ export default function ChannelPage() {
           author_avatar: undefined,
           likes_count: post.likes_count || 0,
           created_at: post.created_at,
+          updated_at: post.updated_at,
           status: post.status,
           campaign_id: post.campaign_id,
           campaign_name: campaign?.name || 'Unknown Campaign',
