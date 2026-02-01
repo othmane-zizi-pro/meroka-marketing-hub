@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Pencil, Check, X, ExternalLink, Send, Clock, FileEdit, Sparkles, Cpu, Layers } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil, Check, X, Send, Clock, FileEdit, Sparkles, Cpu, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlatformPreview } from '@/components/posts/PlatformPreview';
 import { AIGenerationModal } from '@/components/posts/AIGenerationModal';
@@ -237,28 +237,6 @@ export function RandomPostCard({ post, currentUserEmail, isAdminView = true, onE
           />
         )}
       </div>
-
-      {/* Inspiration Source */}
-      {post.inspiration && (
-        <div className="px-4 pb-3">
-          <div className="p-3 bg-brand-neutral-50 rounded-lg">
-            <p className="text-xs text-brand-navy-500 mb-1">Inspired by:</p>
-            <p className="text-sm text-brand-navy-700 line-clamp-2">
-              &ldquo;{post.inspiration.content?.substring(0, 150)}{post.inspiration.content && post.inspiration.content.length > 150 ? '...' : ''}&rdquo;
-            </p>
-            {post.inspiration.external_url && (
-              <a
-                href={post.inspiration.external_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 mt-2 text-xs text-brand-brown hover:underline"
-              >
-                View original <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Edit History */}
       {hasEdits && (
