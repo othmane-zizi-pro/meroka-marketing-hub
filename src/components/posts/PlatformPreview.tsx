@@ -42,9 +42,11 @@ function LinkedInPreview({ content, mediaUrl, mediaType, authorName, className }
     <div className={cn("bg-white rounded-lg border border-gray-200 overflow-hidden max-w-[500px]", className)}>
       {/* Header */}
       <div className="p-3 flex items-start gap-2">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-brown font-bold text-white text-lg flex-shrink-0">
-          M
-        </div>
+        <img
+          src="/meroka-logo.png"
+          alt="Meroka"
+          className="h-12 w-12 rounded-full object-cover flex-shrink-0"
+        />
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-[14px] text-gray-900 leading-tight">{authorName}</p>
           <p className="text-[12px] text-gray-500 leading-tight">Company · Healthcare</p>
@@ -137,9 +139,11 @@ function XPreview({ content, mediaUrl, mediaType, authorName, authorHandle, clas
     <div className={cn("bg-black rounded-2xl border border-gray-800 overflow-hidden max-w-[500px]", className)}>
       {/* Header */}
       <div className="p-3 flex items-start gap-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-brown font-bold text-white text-sm flex-shrink-0">
-          M
-        </div>
+        <img
+          src="/meroka-logo.png"
+          alt="Meroka"
+          className="h-10 w-10 rounded-full object-cover flex-shrink-0"
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 flex-wrap">
             <span className="font-bold text-[15px] text-white">{authorName}</span>

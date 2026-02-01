@@ -135,6 +135,11 @@ export default function ProofreadingPage() {
   };
 
   const approveDraft = async (draftId: string) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to publish this post now?\n\nPlease review the preview above before confirming.'
+    );
+    if (!confirmed) return;
+
     setActionLoading(draftId);
     try {
       const response = await fetch(`/api/drafts/${draftId}/approve`, {
@@ -332,22 +337,17 @@ export default function ProofreadingPage() {
                         </div>
                       ) : (
                         <>
-                          <p className="text-brand-navy-800 whitespace-pre-wrap">
-                            {draft.current_content || draft.content}
-                          </p>
                           {draft.current_content && draft.current_content !== draft.content && (
-                            <p className="text-xs text-amber-600 mt-2">
+                            <p className="text-xs text-amber-600 mb-3">
                               Content has been edited from original
                             </p>
                           )}
                           {/* Platform Preview */}
-                          <div className="mt-4">
-                            <PlatformPreview
-                              platform={draft.channel as 'linkedin' | 'x'}
-                              content={draft.current_content || draft.content}
-                              mediaUrl={draft.media_url || undefined}
-                            />
-                          </div>
+                          <PlatformPreview
+                            platform={draft.channel as 'linkedin' | 'x'}
+                            content={draft.current_content || draft.content}
+                            mediaUrl={draft.media_url || undefined}
+                          />
                         </>
                       )}
                     </div>

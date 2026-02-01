@@ -104,6 +104,13 @@ export function RandomPostCard({ post, currentUserEmail, isAdminView = true, onE
       return;
     }
 
+    if (action === 'publish') {
+      const confirmed = window.confirm(
+        'Are you sure you want to publish this post now?\n\nPlease review the preview above before confirming.'
+      );
+      if (!confirmed) return;
+    }
+
     setActionLoading(action);
     try {
       await onAction(post.id, action);
@@ -184,7 +191,7 @@ export function RandomPostCard({ post, currentUserEmail, isAdminView = true, onE
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content - Edit mode or Preview */}
       <div className="p-4">
         {isEditing ? (
           <div className="space-y-3">
@@ -222,7 +229,12 @@ export function RandomPostCard({ post, currentUserEmail, isAdminView = true, onE
             </div>
           </div>
         ) : (
-          <p className="text-brand-navy-800 whitespace-pre-wrap">{currentContent}</p>
+          <PlatformPreview
+            platform={post.channel as 'linkedin' | 'x'}
+            content={currentContent}
+            mediaUrl={post.media_url}
+            mediaType={post.media_type as 'image' | 'video' | undefined}
+          />
         )}
       </div>
 
@@ -247,32 +259,6 @@ export function RandomPostCard({ post, currentUserEmail, isAdminView = true, onE
           </div>
         </div>
       )}
-
-      {/* Preview Toggle */}
-      <div className="px-4 pb-3">
-        <button
-          onClick={() => setShowPreview(!showPreview)}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
-            showPreview
-              ? "bg-brand-brown text-white"
-              : "bg-brand-neutral-100 text-brand-navy-600 hover:bg-brand-neutral-200"
-          )}
-        >
-          {showPreview ? 'Hide Preview' : 'Show Preview'}
-        </button>
-
-        {showPreview && (
-          <div className="mt-3">
-            <PlatformPreview
-              platform={post.channel as 'linkedin' | 'x'}
-              content={currentContent}
-              mediaUrl={post.media_url}
-              mediaType={post.media_type as 'image' | 'video' | undefined}
-            />
-          </div>
-        )}
-      </div>
 
       {/* Edit History */}
       {hasEdits && (

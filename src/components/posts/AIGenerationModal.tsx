@@ -80,6 +80,13 @@ export function AIGenerationModal({ metadata, originalPostId, channel, onClose, 
       return;
     }
 
+    if (action === 'publish') {
+      const confirmed = window.confirm(
+        'Are you sure you want to publish this version now?\n\nPlease review the content above before confirming.'
+      );
+      if (!confirmed) return;
+    }
+
     setActionLoading(`${source}-${action}`);
     try {
       await onCandidateAction(content, source, action);
