@@ -58,20 +58,6 @@ export function AlternateVersionsModal({
     };
   }, []);
 
-  const getModelIcon = (source: string) => {
-    if (source.includes('OpenAI') || source.includes('GPT') || source.includes('gpt')) return '🤖';
-    if (source.includes('Gemini') || source.includes('Google') || source.includes('gemini')) return '💎';
-    if (source.includes('Grok') || source.includes('xAI') || source.includes('grok')) return '🚀';
-    return '🧠';
-  };
-
-  const getModelDisplayName = (source: string) => {
-    if (source.includes('gpt')) return 'GPT';
-    if (source.includes('gemini')) return 'Gemini';
-    if (source.includes('grok')) return 'Grok';
-    return source;
-  };
-
   const handleAction = async (
     content: string,
     source: string,
@@ -164,13 +150,10 @@ export function AlternateVersionsModal({
                     key={index}
                     className="rounded-xl border border-brand-neutral-200 bg-white p-4 hover:border-brand-brown/30 transition-colors"
                   >
-                    {/* Model indicator */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xl">{getModelIcon(candidate.source)}</span>
-                      <span className="text-sm font-medium text-brand-navy-700">
-                        {getModelDisplayName(candidate.source)} Version
-                      </span>
-                    </div>
+                    {/* Version label */}
+                    <p className="text-xs font-medium text-brand-navy-400 mb-2">
+                      Version {index + 1}
+                    </p>
 
                     {/* Content */}
                     <p className="text-brand-navy-800 whitespace-pre-wrap mb-4">
@@ -189,7 +172,7 @@ export function AlternateVersionsModal({
                         ) : (
                           <FileEdit className="h-4 w-4" />
                         )}
-                        Use This Version
+                        Send to Proofreading
                       </button>
                       <button
                         onClick={() => handleAction(candidate.content, candidate.source, 'schedule')}
@@ -230,7 +213,7 @@ export function AlternateVersionsModal({
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <h3 className="text-lg font-semibold text-brand-navy-900 mb-4">Schedule Post</h3>
             <p className="text-sm text-brand-navy-600 mb-4">
-              Schedule the {getModelDisplayName(scheduleCandidate.source)} version for publishing.
+              Schedule this version for publishing.
             </p>
             <div className="space-y-4">
               <div>
