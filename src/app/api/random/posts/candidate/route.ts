@@ -26,14 +26,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Scheduled time is required' }, { status: 400 });
     }
 
-    // Get the user's name
+    // Get the user's name and ID from custom users table
     const { data: userData } = await supabase
       .from('users')
-      .select('name')
+      .select('id, name')
       .eq('email', user.email)
       .single();
 
     const userName = userData?.name || user.email?.split('@')[0] || 'Unknown';
+    const userId = userData?.id;
 
     // Fetch original post to get campaign_id, inspiration_post_id, channel, etc.
     const { data: originalPost, error: fetchError } = await supabase
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
       .insert({
         content: candidateContent,
         channel: originalPost.channel,
-        author_id: user.id,
+        author_id: userId,
         author_email: user.email,
         author_name: userName,
         route,
