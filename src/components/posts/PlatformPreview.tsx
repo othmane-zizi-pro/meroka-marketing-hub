@@ -132,7 +132,7 @@ interface XPreviewProps {
 
 function XPreview({ content, mediaUrl, mediaType, authorName, authorHandle, className }: XPreviewProps) {
   const charCount = content.length;
-  const maxChars = 280;
+  const maxChars = 25000; // X Premium limit
   const isOverLimit = charCount > maxChars;
 
   return (
