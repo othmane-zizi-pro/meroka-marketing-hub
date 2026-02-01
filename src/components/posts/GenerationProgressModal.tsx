@@ -48,22 +48,27 @@ export function GenerationProgressModal({
 
       // Determine current step based on elapsed time
       let cumulativeTime = 0;
+      let newStep = 0;
       for (let i = 0; i < STEPS.length; i++) {
         cumulativeTime += stepDurations[i];
         if (elapsed < cumulativeTime) {
-          setCurrentStep(i);
+          newStep = i;
           break;
         }
+        if (i === STEPS.length - 1) {
+          newStep = STEPS.length - 1;
+        }
       }
+      setCurrentStep(newStep);
 
       // Cycle through models during generation step
-      if (currentStep === 1) {
+      if (newStep === 1) {
         setActiveModel(Math.floor((elapsed % 3000) / 1000));
       }
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isOpen, currentStep]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
