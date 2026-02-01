@@ -733,14 +733,14 @@ export default function ChannelPage() {
                   />
                 )}
 
-                {filteredPosts.length === 0 ? (
+                {filteredPosts.length === 0 && !(selectedCampaign === 'all' && randomPosts.length > 0) ? (
                   <div className="text-center py-12">
                     <p className="text-brand-navy-500">No posts yet</p>
                     <p className="text-sm text-brand-navy-400 mt-1">
                       Posts will appear here once the AI generates them
                     </p>
                   </div>
-                ) : (
+                ) : filteredPosts.length > 0 ? (
                   <>
                     {/* Author filter - only for Employee Voices campaign */}
                     {isEmployeeVoices && uniqueAuthors.length > 1 && (
@@ -832,7 +832,7 @@ export default function ChannelPage() {
                       )}
                     </div>
                   </>
-                )}
+                ) : null}
               </>
             )}
           </div>
