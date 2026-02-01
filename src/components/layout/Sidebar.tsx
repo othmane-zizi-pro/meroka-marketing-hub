@@ -15,6 +15,7 @@ import {
   FileEdit,
   Clock,
   Activity,
+  Layers,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { XIcon } from '@/components/ui/icons';
@@ -27,6 +28,7 @@ const navigation: NavItem[] = [
   { type: 'link', name: 'Activity Feed', href: '/activity', icon: Activity },
   { type: 'link', name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { type: 'separator' },
+  { type: 'link', name: 'Conveyor Belt', href: '/conveyor-belt', icon: Layers },
   { type: 'link', name: 'LinkedIn', href: '/channels/linkedin', icon: Linkedin },
   { type: 'link', name: 'X', href: '/channels/twitter', icon: XIcon },
   { type: 'link', name: 'Instagram', href: '/channels/instagram', icon: Instagram },

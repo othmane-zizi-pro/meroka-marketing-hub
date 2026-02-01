@@ -1,0 +1,89 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+
+// GET /api/conveyor-belt/posts - List all AI-generated posts across platforms
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status') || 'pending_review';
+
+    // Get random campaigns, excluding special campaigns like Employee Voices
+    const { data: campaigns, error: campaignsError } = await supabase
+      .from('campaigns')
+      .select('id, name')
+      .eq('type', 'random')
+      .eq('is_active', true)
+      .not('name', 'in', '(Employee Voices)');
+
+    if (campaignsError) {
+      console.error('Error fetching random campaigns:', campaignsError);
+      return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });
+    }
+
+    if (!campaigns || campaigns.length === 0) {
+      return NextResponse.json({ posts: [], totalCount: 0 });
+    }
+
+    const campaignIds = campaigns.map(c => c.id);
+
+    // Build query for all random campaign posts (both linkedin and x channels)
+    let query = supabase
+      .from('post_drafts')
+      .select('*')
+      .in('campaign_id', campaignIds)
+      .in('channel', ['linkedin', 'x'])
+      .order('created_at', { ascending: false });
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data: posts, error: postsError } = await query;
+
+    if (postsError) {
+      console.error('Error fetching conveyor belt posts:', postsError);
+      return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 });
+    }
+
+    // For each post, fetch its edit history and inspiration
+    const postsWithData = await Promise.all(
+      (posts || []).map(async (post) => {
+        const [editHistoryResult, inspirationResult] = await Promise.all([
+          supabase
+            .from('post_edit_history')
+            .select('*')
+            .eq('post_draft_id', post.id)
+            .order('created_at', { ascending: false }),
+          post.inspiration_post_id
+            ? supabase
+                .from('social_posts')
+                .select('id, content, external_url, author_name, channel')
+                .eq('id', post.inspiration_post_id)
+                .single()
+            : Promise.resolve({ data: null }),
+        ]);
+
+        return {
+          ...post,
+          edit_history: editHistoryResult.data || [],
+          inspiration: inspirationResult.data || null,
+        };
+      })
+    );
+
+    return NextResponse.json({
+      posts: postsWithData,
+      totalCount: postsWithData.length,
+    });
+  } catch (error) {
+    console.error('Error in GET /api/conveyor-belt/posts:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
