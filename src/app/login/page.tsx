@@ -47,8 +47,8 @@ function LoginForm() {
   return (
     <Card className="w-full max-w-md border-brand-neutral-100 shadow-lg">
       <CardHeader className="text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-brown text-white text-2xl font-bold shadow-md">
-          M
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-brown text-white text-xl font-bold shadow-md">
+          M<sup className="text-xs">3</sup>
         </div>
         <CardTitle className="text-2xl text-brand-navy-900">MCUBE</CardTitle>
         <CardDescription className="text-brand-navy-600">
@@ -106,8 +106,8 @@ export default function LoginPage() {
       <Suspense fallback={
         <Card className="w-full max-w-md border-brand-neutral-100 shadow-lg">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-brown text-white text-2xl font-bold shadow-md">
-              M
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-brown text-white text-xl font-bold shadow-md">
+              M<sup className="text-xs">3</sup>
             </div>
             <CardTitle className="text-2xl text-brand-navy-900">MCUBE</CardTitle>
           </CardHeader>

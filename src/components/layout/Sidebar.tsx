@@ -48,8 +48,8 @@ export function Sidebar() {
     <div className="flex h-screen w-64 flex-col bg-brand-navy-800">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b border-brand-navy-600/30 px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-brown font-bold text-white">
-          M
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-brown font-bold text-white text-xs">
+          M<sup className="text-[10px] -top-1 relative">3</sup>
         </div>
         <span className="text-lg font-semibold text-brand-neutral-50">MCUBE</span>
       </div>
