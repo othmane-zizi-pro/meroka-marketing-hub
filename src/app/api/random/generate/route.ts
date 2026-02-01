@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
               prompt: llmResponse.prompt,
               platform: sourcePlatform,
               inspiration_content: inspiration.content,
-              models_used: llmResponse.models_used || ['GPT-4o', 'Gemini 1.5 Flash', 'Grok 2'],
+              models_used: llmResponse.models_used || ['GPT-5.2', 'Gemini 3 Pro', 'Grok 4.1'],
               candidates: llmResponse.candidates || [],
               winner: {
                 source: llmResponse.source,
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
                 reason: llmResponse.reason || 'No reason provided',
               },
               judge: {
-                model: 'GPT-4o',
+                model: 'GPT-5.2',
                 prompt: llmResponse.judge_prompt || '',
               },
               generated_at: new Date().toISOString(),

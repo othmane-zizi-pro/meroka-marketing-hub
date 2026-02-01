@@ -84,7 +84,7 @@ Generate ONLY the post. No explanations, no quotes around it, no meta-commentary
 
     console.log('Generating posts from council...');
 
-    const modelsUsed = ['GPT-4o', 'Gemini 1.5 Flash', 'Grok 2'];
+    const modelsUsed = ['GPT-5.2', 'Gemini 3 Pro', 'Grok 4.1'];
 
     // Call all 3 LLMs in parallel
     const [openaiResult, geminiResult, grokResult] = await Promise.allSettled([
@@ -169,7 +169,7 @@ async function callOpenAI(prompt) {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'gpt-5.2',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 500,
       temperature: 0.8,
@@ -186,7 +186,7 @@ async function callOpenAI(prompt) {
 
 async function callGemini(prompt) {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -216,7 +216,7 @@ async function callGrok(prompt) {
       'Authorization': `Bearer ${GROK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'grok-2-latest',
+      model: 'grok-4.1',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 500,
       temperature: 0.8,
@@ -265,7 +265,7 @@ Respond in this exact JSON format:
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'gpt-5.2',
       messages: [{ role: 'user', content: judgePrompt }],
       max_tokens: 200,
       temperature: 0.3,
