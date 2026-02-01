@@ -113,7 +113,16 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Error creating new draft:', insertError);
-      return NextResponse.json({ error: 'Failed to create draft' }, { status: 500 });
+      console.error('Insert data:', {
+        content: candidateContent?.substring(0, 50),
+        channel: originalPost.channel,
+        author_id: user.id,
+        author_email: user.email,
+        author_name: userName,
+        route,
+        status,
+      });
+      return NextResponse.json({ error: `Failed to create draft: ${insertError.message}` }, { status: 500 });
     }
 
     // If action is 'publish', immediately publish
