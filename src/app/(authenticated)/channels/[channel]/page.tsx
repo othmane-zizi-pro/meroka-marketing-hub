@@ -504,7 +504,16 @@ export default function ChannelPage() {
                   >
                     All Campaigns
                   </button>
-                  {campaigns.map(campaign => {
+                  {[...campaigns]
+                    .sort((a, b) => {
+                      // Put Employee Voices (square corners) last
+                      const aIsSpecial = a.name === 'Employee Voices';
+                      const bIsSpecial = b.name === 'Employee Voices';
+                      if (aIsSpecial && !bIsSpecial) return 1;
+                      if (!aIsSpecial && bIsSpecial) return -1;
+                      return 0;
+                    })
+                    .map(campaign => {
                     const isEmployeeVoicesCampaign = campaign.name === 'Employee Voices';
                     return (
                       <button
