@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X, FileEdit, Clock, Send, Loader2, Layers } from 'lucide-react';
 import { GenerationCandidate } from '@/types/generation';
+import { PlatformPreview } from '@/components/posts/PlatformPreview';
 import { cn } from '@/lib/utils';
 
 interface AlternateVersionsModalProps {
@@ -113,7 +114,7 @@ export function AlternateVersionsModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden mx-4">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-brand-neutral-100 bg-gradient-to-r from-brand-neutral-50 to-white">
           <div className="flex items-center gap-3">
@@ -158,14 +159,17 @@ export function AlternateVersionsModal({
                     className="rounded-xl border border-brand-neutral-200 bg-white p-4 hover:border-brand-brown/30 transition-colors"
                   >
                     {/* Version label */}
-                    <p className="text-xs font-medium text-brand-navy-400 mb-2">
+                    <p className="text-xs font-medium text-brand-navy-400 mb-3">
                       Version {index + 1}
                     </p>
 
-                    {/* Content */}
-                    <p className="text-brand-navy-800 whitespace-pre-wrap mb-4">
-                      {candidate.content}
-                    </p>
+                    {/* Platform Preview */}
+                    <div className="mb-4">
+                      <PlatformPreview
+                        platform={channel as 'linkedin' | 'x'}
+                        content={candidate.content}
+                      />
+                    </div>
 
                     {/* Action buttons */}
                     <div className="flex items-center gap-2 pt-3 border-t border-brand-neutral-100">
