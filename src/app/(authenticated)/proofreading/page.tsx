@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, X, History, Linkedin, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Loader2, Check, X, History, Linkedin, ChevronDown, ChevronUp, ExternalLink, Clock, Send } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
 import { PlatformPreview } from '@/components/posts/PlatformPreview';
 import { cn } from '@/lib/utils';
@@ -45,6 +45,9 @@ export default function ProofreadingPage() {
   const [editContent, setEditContent] = useState('');
   const [editSummary, setEditSummary] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [scheduleDraft, setScheduleDraft] = useState<string | null>(null);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
 
   useEffect(() => {
     fetchDrafts();
@@ -184,6 +187,35 @@ export default function ProofreadingPage() {
     } catch (error) {
       console.error('Error rejecting draft:', error);
       alert('Failed to reject');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleScheduleConfirm = async () => {
+    if (!scheduleDraft || !scheduledDate || !scheduledTime) return;
+
+    setActionLoading(scheduleDraft);
+    try {
+      const scheduledFor = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
+      const response = await fetch(`/api/drafts/${scheduleDraft}/schedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduledFor }),
+      });
+
+      if (response.ok) {
+        setDrafts(prev => prev.filter(d => d.id !== scheduleDraft));
+        setScheduleDraft(null);
+        setScheduledDate('');
+        setScheduledTime('');
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to schedule');
+      }
+    } catch (error) {
+      console.error('Error scheduling draft:', error);
+      alert('Failed to schedule');
     } finally {
       setActionLoading(null);
     }
@@ -332,35 +364,42 @@ export default function ProofreadingPage() {
                           Edit
                         </Button>
 
-                        {isAuthor(draft) && (
-                          <>
-                            <Button
-                              size="sm"
-                              onClick={() => approveDraft(draft.id)}
-                              disabled={actionLoading === draft.id}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              {actionLoading === draft.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <Check className="h-4 w-4 mr-1" />
-                                  Approve
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => rejectDraft(draft.id)}
-                              disabled={actionLoading === draft.id}
-                              className="text-red-600 border-red-200 hover:bg-red-50"
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Reject
-                            </Button>
-                          </>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setScheduleDraft(draft.id)}
+                          disabled={actionLoading === draft.id}
+                        >
+                          <Clock className="h-4 w-4 mr-1" />
+                          Schedule
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          onClick={() => approveDraft(draft.id)}
+                          disabled={actionLoading === draft.id}
+                          className="bg-brand-brown hover:bg-brand-brown/90"
+                        >
+                          {actionLoading === draft.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4 mr-1" />
+                              Send Now
+                            </>
+                          )}
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => rejectDraft(draft.id)}
+                          disabled={actionLoading === draft.id}
+                          className="text-red-600 border-red-200 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
                       </div>
                     )}
 
@@ -407,6 +446,55 @@ export default function ProofreadingPage() {
           )}
         </div>
       </div>
+
+      {/* Schedule Modal */}
+      {scheduleDraft && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-brand-navy-900 mb-4">Schedule Post</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-brand-navy-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 border border-brand-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-brown/50"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-navy-700 mb-1">Time</label>
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-brand-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-brown/50"
+                />
+              </div>
+              <p className="text-xs text-brand-navy-400">Time is in your local timezone</p>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setScheduleDraft(null);
+                  setScheduledDate('');
+                  setScheduledTime('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleScheduleConfirm}
+                disabled={!scheduledDate || !scheduledTime || actionLoading !== null}
+              >
+                {actionLoading ? 'Scheduling...' : 'Schedule'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
