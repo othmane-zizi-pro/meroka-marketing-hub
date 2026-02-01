@@ -504,30 +504,28 @@ export default function ChannelPage() {
                   >
                     All Campaigns
                   </button>
-                  {campaigns
-                    .filter(c => c.type !== 'random')
-                    .map(campaign => {
-                      const isEmployeeVoicesCampaign = campaign.name === 'Employee Voices';
-                      return (
-                        <button
-                          key={campaign.id}
-                          onClick={() => {
-                            setSelectedCampaign(campaign.id);
-                            setSelectedAuthor('all');
-                            setCurrentPage(1);
-                          }}
-                          className={cn(
-                            "px-4 py-2 text-sm font-medium transition-colors",
-                            isEmployeeVoicesCampaign ? "rounded-lg" : "rounded-full",
-                            selectedCampaign === campaign.id
-                              ? "bg-brand-brown text-white"
-                              : "bg-brand-neutral-100 text-brand-navy-700 hover:bg-brand-neutral-200"
-                          )}
-                        >
-                          {campaign.name}
-                        </button>
-                      );
-                    })}
+                  {campaigns.map(campaign => {
+                    const isEmployeeVoicesCampaign = campaign.name === 'Employee Voices';
+                    return (
+                      <button
+                        key={campaign.id}
+                        onClick={() => {
+                          setSelectedCampaign(campaign.id);
+                          setSelectedAuthor('all');
+                          setCurrentPage(1);
+                        }}
+                        className={cn(
+                          "px-4 py-2 text-sm font-medium transition-colors",
+                          isEmployeeVoicesCampaign ? "rounded-lg" : "rounded-full",
+                          selectedCampaign === campaign.id
+                            ? "bg-brand-brown text-white"
+                            : "bg-brand-neutral-100 text-brand-navy-700 hover:bg-brand-neutral-200"
+                        )}
+                      >
+                        {campaign.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
