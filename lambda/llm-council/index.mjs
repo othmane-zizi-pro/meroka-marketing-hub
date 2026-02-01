@@ -262,7 +262,7 @@ AVOID posts that:
 - Are too safe or hedged
 - Could have been written by any healthcare company
 
-${candidates.map((c, i) => `--- CANDIDATE ${i + 1} (${c.source}) ---
+${candidates.map((c, i) => `--- CANDIDATE ${i + 1} ---
 ${c.content}
 `).join('\n')}
 
