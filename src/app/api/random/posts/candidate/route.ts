@@ -77,6 +77,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new draft with the candidate content
+    // Note: campaign_id is set to null so it appears in proofreading room
+    // (proofreading room filters out AI campaign posts)
     const { data: newDraft, error: insertError } = await supabase
       .from('post_drafts')
       .insert({
@@ -87,7 +89,7 @@ export async function POST(request: NextRequest) {
         author_name: 'AI Generator (Alternate)',
         route,
         status,
-        campaign_id: originalPost.campaign_id,
+        campaign_id: null, // Set to null so it appears in proofreading room
         inspiration_post_id: originalPost.inspiration_post_id,
         generation_metadata: newMetadata,
         scheduled_for: scheduledForValue,
