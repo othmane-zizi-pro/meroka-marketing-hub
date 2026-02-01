@@ -4,54 +4,50 @@ Run AWS CLI commands with SSO authentication.
 
 ## Instructions
 
-When the user invokes `/aws`, execute AWS commands using the SSO profile.
+When the user invokes `/aws`, you MUST:
+
+1. **First, check if credentials are valid**:
+   ```bash
+   aws --profile AdministratorAccess-168504280929 sts get-caller-identity 2>&1
+   ```
+
+2. **If credentials are expired**, run SSO login and wait for it to complete:
+   ```bash
+   aws sso login --profile AdministratorAccess-168504280929
+   ```
+   This will open a browser for the user to authenticate. Wait for the login to complete.
+
+3. **Then execute the requested AWS command** with the profile.
+
+You handle the entire flow - login if needed, then complete the task. Do not ask the user to login manually.
 
 ### AWS Profile
 ```
 AdministratorAccess-168504280929
 ```
 
-### Usage Patterns
+### Default Region
+```
+us-west-2
+```
 
-1. **Login to AWS SSO** (if credentials expired): `/aws login`
-   ```bash
-   aws sso login --profile AdministratorAccess-168504280929
-   ```
+### Usage Examples
 
-2. **Run any AWS command**: `/aws lambda list-functions`
-   ```bash
-   aws --profile AdministratorAccess-168504280929 <command>
-   ```
-
-3. **Deploy Lambda function**: `/aws deploy-lambda <function-name>`
-   - Zip the function code
-   - Upload using `aws lambda update-function-code`
-
-   Example for llm-council:
+1. **Deploy Lambda function**: `/aws deploy-lambda llm-council`
    ```bash
    cd lambda/llm-council && zip -r function.zip index.mjs && aws --profile AdministratorAccess-168504280929 lambda update-function-code --function-name llm-council --zip-file fileb://function.zip --region us-west-2
    ```
 
-### Common Commands
+2. **Any AWS command**: `/aws lambda list-functions`
+   ```bash
+   aws --profile AdministratorAccess-168504280929 lambda list-functions --region us-west-2
+   ```
 
-- **List Lambda functions**: `/aws lambda list-functions --region us-west-2`
-- **Get Lambda logs**: `/aws logs tail /aws/lambda/<function-name> --follow --region us-west-2`
-- **Invoke Lambda**: `/aws lambda invoke --function-name <name> --payload '{}' output.json --region us-west-2`
-
-### Auto-Login
-
-Before running any AWS command, first check if credentials are valid:
-```bash
-aws --profile AdministratorAccess-168504280929 sts get-caller-identity
-```
-
-If this fails with an expired token error, automatically run:
-```bash
-aws sso login --profile AdministratorAccess-168504280929
-```
-
-Then retry the original command.
+3. **Get Lambda logs**: `/aws logs llm-council`
+   ```bash
+   aws --profile AdministratorAccess-168504280929 logs tail /aws/lambda/llm-council --follow --region us-west-2
+   ```
 
 ### Arguments
 
-$ARGUMENTS - The AWS CLI command to run (e.g., "login", "lambda list-functions", "deploy-lambda llm-council")
+$ARGUMENTS - The AWS task to perform (e.g., "deploy-lambda llm-council", "lambda list-functions")
