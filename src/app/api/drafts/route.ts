@@ -25,6 +25,12 @@ export async function GET(request: NextRequest) {
       query = query.eq('route', route);
     }
 
+    // Exclude AI-generated posts from proofreading room
+    // AI posts have campaign_id set, user-sent posts have campaign_id null
+    if (route === 'proofreading') {
+      query = query.is('campaign_id', null);
+    }
+
     if (status) {
       query = query.eq('status', status);
     }
