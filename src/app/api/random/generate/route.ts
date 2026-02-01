@@ -106,13 +106,9 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Fetch top 3 posts by likes for few-shot examples
-        // Map source platform to channel platform used in posts table
-        const channelPlatformMap: Record<string, string> = {
-          linkedin: 'linkedin',
-          x: 'twitter',
-        };
-        const channelPlatform = channelPlatformMap[sourcePlatform] || sourcePlatform;
+        // Fetch top 3 posts for few-shot examples
+        // Channel platform matches source platform directly (linkedin -> linkedin, x -> x)
+        const channelPlatform = sourcePlatform;
 
         // Get channel ID for this platform
         const { data: channelData } = await supabase
@@ -124,8 +120,10 @@ export async function POST(request: NextRequest) {
         let topPerformingPosts: { content: string; likes_count: number }[] = [];
 
         if (channelData?.id) {
+          console.log(`Fetching top posts for channel ${channelPlatform} (id: ${channelData.id})`);
+
           // Fetch top 3 posts by likes from campaigns in this channel
-          const { data: topPosts } = await supabase
+          const { data: topPosts, error: topPostsError } = await supabase
             .from('posts')
             .select(`
               content,
@@ -137,13 +135,19 @@ export async function POST(request: NextRequest) {
             .order('likes_count', { ascending: false })
             .limit(3);
 
-          if (topPosts && topPosts.length > 0) {
+          if (topPostsError) {
+            console.error('Error fetching top posts:', topPostsError);
+          } else if (topPosts && topPosts.length > 0) {
             topPerformingPosts = topPosts.map(p => ({
               content: p.content,
               likes_count: p.likes_count || 0,
             }));
-            console.log(`Found ${topPerformingPosts.length} top-performing posts for few-shot examples`);
+            console.log(`Found ${topPerformingPosts.length} top-performing posts for few-shot examples:`, topPerformingPosts.map(p => p.content.substring(0, 50) + '...'));
+          } else {
+            console.log('No posts found for few-shot examples');
           }
+        } else {
+          console.log(`No channel found for platform: ${channelPlatform}`);
         }
 
         // Randomly select posts for inspiration
