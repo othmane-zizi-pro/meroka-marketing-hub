@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Pencil, Check, X, ExternalLink, Send, Clock, FileEdit, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil, Check, X, ExternalLink, Send, Clock, FileEdit, Sparkles, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlatformPreview } from '@/components/posts/PlatformPreview';
+import { AIGenerationModal } from '@/components/posts/AIGenerationModal';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from '@/lib/utils';
+import { GenerationMetadata } from '@/types/generation';
 
 interface EditHistoryItem {
   id: string;
@@ -37,15 +39,19 @@ interface RandomPost {
   edit_history: EditHistoryItem[];
   media_url?: string;
   media_type?: string;
+  generation_metadata?: GenerationMetadata | null;
 }
 
 interface RandomPostCardProps {
   post: RandomPost;
+  currentUserEmail?: string;
   onEdit: (postId: string, content: string, summary: string) => Promise<void>;
   onAction: (postId: string, action: 'proofreading' | 'publish' | 'schedule', scheduledFor?: string) => Promise<void>;
 }
 
-export function RandomPostCard({ post, onEdit, onAction }: RandomPostCardProps) {
+const ADMIN_EMAIL = 'othmane.zizi@meroka.com';
+
+export function RandomPostCard({ post, currentUserEmail, onEdit, onAction }: RandomPostCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.current_content || post.content);
   const [editSummary, setEditSummary] = useState('');
@@ -56,6 +62,7 @@ export function RandomPostCard({ post, onEdit, onAction }: RandomPostCardProps) 
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [showAIDetailsModal, setShowAIDetailsModal] = useState(false);
 
   const currentContent = post.current_content || post.content;
   const hasEdits = post.edit_history && post.edit_history.length > 0;
@@ -134,13 +141,25 @@ export function RandomPostCard({ post, onEdit, onAction }: RandomPostCardProps) 
             )}
           </div>
           {!isEditing && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="p-1.5 rounded-lg hover:bg-brand-neutral-50 text-brand-navy-400 hover:text-brand-navy-600 transition-colors"
-              title="Edit post"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              {/* AI Details Button - only visible to admin when metadata exists */}
+              {currentUserEmail === ADMIN_EMAIL && post.generation_metadata && (
+                <button
+                  onClick={() => setShowAIDetailsModal(true)}
+                  className="p-1.5 rounded-lg hover:bg-purple-50 text-purple-500 hover:text-purple-700 transition-colors"
+                  title="View AI generation details"
+                >
+                  <Cpu className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-1.5 rounded-lg hover:bg-brand-neutral-50 text-brand-navy-400 hover:text-brand-navy-600 transition-colors"
+                title="Edit post"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -367,6 +386,14 @@ export function RandomPostCard({ post, onEdit, onAction }: RandomPostCardProps) 
             </div>
           </div>
         </div>
+      )}
+
+      {/* AI Generation Details Modal */}
+      {showAIDetailsModal && post.generation_metadata && (
+        <AIGenerationModal
+          metadata={post.generation_metadata}
+          onClose={() => setShowAIDetailsModal(false)}
+        />
       )}
     </div>
   );

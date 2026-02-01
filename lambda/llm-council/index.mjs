@@ -36,6 +36,8 @@ Generate ONLY the post content. No explanations, no quotes around it, no meta-co
 
     console.log('Generating posts from council...');
 
+    const modelsUsed = ['GPT-4o', 'Gemini 1.5 Flash', 'Grok 2'];
+
     // Call all 3 LLMs in parallel
     const [openaiResult, geminiResult, grokResult] = await Promise.allSettled([
       callOpenAI(prompt),
@@ -77,14 +79,18 @@ Generate ONLY the post content. No explanations, no quotes around it, no meta-co
         body: JSON.stringify({
           content: candidates[0].content,
           source: candidates[0].source,
+          reason: 'Only one model succeeded',
           candidates: candidates,
+          prompt: prompt,
+          judge_prompt: null,
+          models_used: modelsUsed,
         }),
       };
     }
 
     // Have the judge pick the best one
     console.log(`Judging ${candidates.length} candidates...`);
-    const winner = await judgeContent(candidates, platform);
+    const { winner, judgePrompt } = await judgeContent(candidates, platform);
 
     return {
       statusCode: 200,
@@ -93,6 +99,9 @@ Generate ONLY the post content. No explanations, no quotes around it, no meta-co
         source: winner.source,
         reason: winner.reason,
         candidates: candidates,
+        prompt: prompt,
+        judge_prompt: judgePrompt,
+        models_used: modelsUsed,
       }),
     };
   } catch (error) {
@@ -212,7 +221,10 @@ Respond in this exact JSON format:
   if (!response.ok) {
     // If judge fails, return first candidate
     console.error('Judge failed, returning first candidate');
-    return { ...candidates[0], reason: 'Judge unavailable' };
+    return {
+      winner: { ...candidates[0], reason: 'Judge unavailable' },
+      judgePrompt: judgePrompt,
+    };
   }
 
   const data = await response.json();
@@ -226,8 +238,11 @@ Respond in this exact JSON format:
       const winnerIndex = parsed.winner - 1;
       if (winnerIndex >= 0 && winnerIndex < candidates.length) {
         return {
-          ...candidates[winnerIndex],
-          reason: parsed.reason,
+          winner: {
+            ...candidates[winnerIndex],
+            reason: parsed.reason,
+          },
+          judgePrompt: judgePrompt,
         };
       }
     }
@@ -236,5 +251,8 @@ Respond in this exact JSON format:
   }
 
   // Default to first candidate
-  return { ...candidates[0], reason: 'Judge parse error' };
+  return {
+    winner: { ...candidates[0], reason: 'Judge parse error' },
+    judgePrompt: judgePrompt,
+  };
 }

@@ -11,8 +11,8 @@ import { RandomPostCard } from '@/components/posts/RandomPostCard';
 import { createClient } from '@/lib/supabase/client';
 import { SourceType } from '@/components/posts/PostBadges';
 import { useUser } from '@/hooks/useUser';
-import { Loader2, Filter, User, RefreshCw } from 'lucide-react';
-import { Channel } from '@/types';
+import { Loader2, Filter, User, RefreshCw, Sparkles } from 'lucide-react';
+import { Channel, GenerationMetadata } from '@/types';
 import { cn } from '@/lib/utils';
 
 const channelNames: Record<Channel, string> = {
@@ -89,6 +89,7 @@ interface RandomPost {
   edit_history: EditHistoryItem[];
   media_url?: string;
   media_type?: string;
+  generation_metadata?: GenerationMetadata | null;
 }
 
 export default function ChannelPage() {
@@ -109,8 +110,10 @@ export default function ChannelPage() {
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [randomLoading, setRandomLoading] = useState(false);
+  const [generateLoading, setGenerateLoading] = useState(false);
   const [modalPost, setModalPost] = useState<Post | null>(null);
   const POSTS_PER_PAGE = 10;
+  const ADMIN_EMAIL = 'othmane.zizi@meroka.com';
 
   const title = channelNames[channel] || 'Channel';
   const description = channelDescriptions[channel] || '';
@@ -361,6 +364,28 @@ export default function ChannelPage() {
     setRandomPosts(posts => posts.filter(p => p.id !== postId));
   };
 
+  const handleGeneratePosts = async () => {
+    if (generateLoading) return;
+    setGenerateLoading(true);
+    try {
+      const response = await fetch('/api/admin/generate-posts', {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (response.ok) {
+        console.log('Generated posts:', data);
+        // Refresh the posts list
+        await fetchRandomPosts();
+      } else {
+        console.error('Failed to generate posts:', data.error);
+      }
+    } catch (error) {
+      console.error('Error generating posts:', error);
+    } finally {
+      setGenerateLoading(false);
+    }
+  };
+
   const handleLikeChange = (postId: string, liked: boolean, newCount: number) => {
     setPosts(prev => prev.map(p =>
       p.id === postId ? { ...p, likes_count: newCount } : p
@@ -509,14 +534,27 @@ export default function ChannelPage() {
                       Review, edit, and publish AI-generated content
                     </p>
                   </div>
-                  <button
-                    onClick={() => fetchRandomPosts()}
-                    disabled={randomLoading}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-navy-600 bg-brand-neutral-100 rounded-lg hover:bg-brand-neutral-200 transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className={cn("h-4 w-4", randomLoading && "animate-spin")} />
-                    Refresh
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Generate Posts Button - Admin only */}
+                    {user?.email === ADMIN_EMAIL && (
+                      <button
+                        onClick={handleGeneratePosts}
+                        disabled={generateLoading}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all disabled:opacity-50 shadow-sm"
+                      >
+                        <Sparkles className={cn("h-4 w-4", generateLoading && "animate-pulse")} />
+                        {generateLoading ? 'Generating...' : 'Generate Posts'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => fetchRandomPosts()}
+                      disabled={randomLoading}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-navy-600 bg-brand-neutral-100 rounded-lg hover:bg-brand-neutral-200 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={cn("h-4 w-4", randomLoading && "animate-spin")} />
+                      Refresh
+                    </button>
+                  </div>
                 </div>
 
                 {randomLoading ? (
@@ -542,6 +580,7 @@ export default function ChannelPage() {
                       <RandomPostCard
                         key={post.id}
                         post={post}
+                        currentUserEmail={user?.email}
                         onEdit={handleRandomEdit}
                         onAction={handleRandomAction}
                       />

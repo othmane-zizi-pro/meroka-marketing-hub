@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
+import { GenerationMetadata, LLMCouncilResponse } from '@/types/generation';
 
 // Check if current time is within allowed generation window (4 AM - 6 PM EST)
 function isWithinGenerationWindow(): boolean {
@@ -114,21 +115,40 @@ export async function POST(request: NextRequest) {
           try {
             // Generate AI content based on inspiration
             // This calls the LLM to create new content inspired by the historical post
-            const generatedContent = await generateContentFromInspiration(
+            const llmResponse = await generateContentFromInspiration(
               inspiration.content,
               sourcePlatform
             );
 
-            if (!generatedContent) {
+            if (!llmResponse) {
               campaignResult.errors.push(`Failed to generate content for inspiration: ${inspiration.id}`);
               continue;
             }
+
+            // Build generation metadata from LLM Council response
+            const generationMetadata: GenerationMetadata = {
+              prompt: llmResponse.prompt,
+              platform: sourcePlatform,
+              inspiration_content: inspiration.content,
+              models_used: llmResponse.models_used || ['GPT-4o', 'Gemini 1.5 Flash', 'Grok 2'],
+              candidates: llmResponse.candidates || [],
+              winner: {
+                source: llmResponse.source,
+                content: llmResponse.content,
+                reason: llmResponse.reason || 'No reason provided',
+              },
+              judge: {
+                model: 'GPT-4o',
+                prompt: llmResponse.judge_prompt || '',
+              },
+              generated_at: new Date().toISOString(),
+            };
 
             // Create a new draft linked to this campaign and inspiration
             const { error: insertError } = await supabase
               .from('post_drafts')
               .insert({
-                content: generatedContent,
+                content: llmResponse.content,
                 channel: sourcePlatform,
                 author_id: null, // AI generated
                 author_email: 'ai@meroka.com',
@@ -137,6 +157,7 @@ export async function POST(request: NextRequest) {
                 status: 'pending_review',
                 campaign_id: campaign.id,
                 inspiration_post_id: inspiration.id,
+                generation_metadata: generationMetadata,
               });
 
             if (insertError) {
@@ -173,7 +194,7 @@ export async function POST(request: NextRequest) {
 async function generateContentFromInspiration(
   inspirationContent: string,
   platform: string
-): Promise<string | null> {
+): Promise<LLMCouncilResponse | null> {
   try {
     console.log(`Calling LLM Council for ${platform} post...`);
 
@@ -211,7 +232,11 @@ async function generateContentFromInspiration(
 
     console.log(`LLM Council selected: ${result.source} - "${result.reason || 'No reason provided'}"`);
 
-    return result.content || null;
+    if (!result.content) {
+      return null;
+    }
+
+    return result as LLMCouncilResponse;
   } catch (error) {
     console.error('Error calling LLM Council:', error);
     return null;
