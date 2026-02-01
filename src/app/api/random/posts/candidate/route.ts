@@ -26,16 +26,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Scheduled time is required' }, { status: 400 });
     }
 
+    // Get the user's name
+    const { data: userData } = await supabase
+      .from('users')
+      .select('name')
+      .eq('email', user.email)
+      .single();
+
+    const userName = userData?.name || user.email?.split('@')[0] || 'Unknown';
+
     // Fetch original post to get campaign_id, inspiration_post_id, channel, etc.
     const { data: originalPost, error: fetchError } = await supabase
       .from('post_drafts')
-      .select('*')
+      .select('*, campaigns(name)')
       .eq('id', originalPostId)
       .single();
 
     if (fetchError || !originalPost) {
       return NextResponse.json({ error: 'Original post not found' }, { status: 404 });
     }
+
+    const campaignName = originalPost.campaigns?.name || 'Unknown';
 
     // Build generation_metadata for the new draft
     const originalMetadata = originalPost.generation_metadata || {};
@@ -48,6 +59,8 @@ export async function POST(request: NextRequest) {
       },
       selected_from_alternate: true,
       original_winner: originalMetadata.winner,
+      sent_by: userName,
+      campaign_name: campaignName,
     };
 
     // Determine route and status based on action
@@ -86,7 +99,7 @@ export async function POST(request: NextRequest) {
         channel: originalPost.channel,
         author_id: user.id,
         author_email: user.email,
-        author_name: 'AI Generator (Alternate)',
+        author_name: userName,
         route,
         status,
         campaign_id: null, // Set to null so it appears in proofreading room

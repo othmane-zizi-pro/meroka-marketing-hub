@@ -278,15 +278,6 @@ export default function ProofreadingPage() {
                               <span className="ml-1 text-xs text-brand-brown">(you)</span>
                             )}
                           </span>
-                          <span className="text-brand-navy-400">·</span>
-                          <span className="text-brand-navy-400">
-                            {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
-                          </span>
-                          {draft.last_edited_at && (
-                            <span className="text-brand-navy-400">
-                              · Edited {formatDistanceToNow(new Date(draft.last_edited_at), { addSuffix: true })}
-                            </span>
-                          )}
                         </div>
                         <button
                           onClick={() => toggleExpand(draft.id)}

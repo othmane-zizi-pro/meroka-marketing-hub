@@ -20,7 +20,7 @@ export function PlatformPreview({
   mediaUrl,
   mediaType,
   authorName = 'Meroka',
-  authorHandle = 'meroka_health',
+  authorHandle = 'MerokaInc',
   className,
 }: PlatformPreviewProps) {
   if (platform === 'linkedin') {
