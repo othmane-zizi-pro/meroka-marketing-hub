@@ -141,9 +141,9 @@ export default function ChannelPage() {
     }
   }, [campaignParam, campaigns, initialCampaignSet]);
 
-  // Fetch random posts when Random campaign is selected
+  // Fetch random posts when Random campaign is selected OR when viewing All Campaigns
   useEffect(() => {
-    if (isRandomCampaign && selectedCampaign !== 'all') {
+    if (isRandomCampaign || selectedCampaign === 'all') {
       fetchRandomPosts();
     }
   }, [selectedCampaign, isRandomCampaign]);
@@ -415,9 +415,13 @@ export default function ChannelPage() {
   // Check if Employee Voices campaign is selected
   const isEmployeeVoices = campaigns.find(c => c.id === selectedCampaign)?.name === 'Employee Voices';
 
+  // Get Employee Voices campaign ID for filtering
+  const employeeVoicesCampaignId = campaigns.find(c => c.name === 'Employee Voices')?.id;
+
   // Filter posts by selected campaign (for non-random campaigns)
+  // When "All Campaigns" is selected, exclude Employee Voices posts (it has its own UI)
   const campaignFilteredPosts = selectedCampaign === 'all'
-    ? posts
+    ? posts.filter(p => p.campaign_id !== employeeVoicesCampaignId)
     : posts.filter(p => p.campaign_id === selectedCampaign);
 
   // Get unique authors for Employee Voices filter (sorted alphabetically)
@@ -500,31 +504,37 @@ export default function ChannelPage() {
                   >
                     All Campaigns
                   </button>
-                  {campaigns.map(campaign => (
-                    <button
-                      key={campaign.id}
-                      onClick={() => {
-                        setSelectedCampaign(campaign.id);
-                        setSelectedAuthor('all');
-                        setCurrentPage(1);
-                      }}
-                      className={cn(
-                        "px-4 py-2 rounded-full text-sm font-medium transition-colors",
-                        selectedCampaign === campaign.id
-                          ? "bg-brand-brown text-white"
-                          : "bg-brand-neutral-100 text-brand-navy-700 hover:bg-brand-neutral-200"
-                      )}
-                    >
-                      {campaign.name}
-                    </button>
-                  ))}
+                  {campaigns
+                    .filter(c => c.type !== 'random')
+                    .map(campaign => {
+                      const isEmployeeVoicesCampaign = campaign.name === 'Employee Voices';
+                      return (
+                        <button
+                          key={campaign.id}
+                          onClick={() => {
+                            setSelectedCampaign(campaign.id);
+                            setSelectedAuthor('all');
+                            setCurrentPage(1);
+                          }}
+                          className={cn(
+                            "px-4 py-2 text-sm font-medium transition-colors",
+                            isEmployeeVoicesCampaign ? "rounded-lg" : "rounded-full",
+                            selectedCampaign === campaign.id
+                              ? "bg-brand-brown text-white"
+                              : "bg-brand-neutral-100 text-brand-navy-700 hover:bg-brand-neutral-200"
+                          )}
+                        >
+                          {campaign.name}
+                        </button>
+                      );
+                    })}
                 </div>
               </div>
             )}
 
-            {/* Random Campaign Content */}
-            {isRandomCampaign ? (
-              <div className="space-y-4">
+            {/* Random Campaign Content - shown for All Campaigns or when Random is selected */}
+            {(selectedCampaign === 'all' || isRandomCampaign) && (
+              <div className="space-y-4 mb-8">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-brand-navy-900">
@@ -588,7 +598,10 @@ export default function ChannelPage() {
                   </>
                 )}
               </div>
-            ) : (
+            )}
+
+            {/* Regular Campaign Content - shown when not viewing only Random */}
+            {!isRandomCampaign && (
               <>
                 {/* Podium for top 3 - only for Employee Voices campaign */}
                 {topPosts.length >= 3 && isEmployeeVoices && (
