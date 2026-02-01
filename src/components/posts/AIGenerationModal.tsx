@@ -1,17 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, ChevronDown, ChevronUp, Trophy, Cpu, Sparkles, Scale } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Trophy, Cpu, Sparkles, Scale, FileEdit, Clock, Send, Loader2 } from 'lucide-react';
 import { GenerationMetadata } from '@/types/generation';
 import { cn } from '@/lib/utils';
 
 interface AIGenerationModalProps {
   metadata: GenerationMetadata;
+  originalPostId?: string;
+  channel?: string;
   onClose: () => void;
+  onCandidateAction?: (
+    candidateContent: string,
+    candidateSource: string,
+    action: 'proofreading' | 'schedule' | 'publish',
+    scheduledFor?: string
+  ) => Promise<void>;
 }
 
-export function AIGenerationModal({ metadata, onClose }: AIGenerationModalProps) {
+export function AIGenerationModal({ metadata, originalPostId, channel, onClose, onCandidateAction }: AIGenerationModalProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['diagram', 'candidates']));
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [scheduleCandidate, setScheduleCandidate] = useState<{ content: string; source: string } | null>(null);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
@@ -54,6 +66,47 @@ export function AIGenerationModal({ metadata, onClose }: AIGenerationModalProps)
     if (source.includes('Gemini') || source.includes('Google')) return 'bg-blue-100 border-blue-300 text-blue-800';
     if (source.includes('Grok') || source.includes('xAI')) return 'bg-purple-100 border-purple-300 text-purple-800';
     return 'bg-gray-100 border-gray-300 text-gray-800';
+  };
+
+  const handleCandidateAction = async (
+    content: string,
+    source: string,
+    action: 'proofreading' | 'schedule' | 'publish'
+  ) => {
+    if (!onCandidateAction) return;
+
+    if (action === 'schedule') {
+      setScheduleCandidate({ content, source });
+      return;
+    }
+
+    setActionLoading(`${source}-${action}`);
+    try {
+      await onCandidateAction(content, source, action);
+      onClose();
+    } catch (error) {
+      console.error('Error performing candidate action:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleScheduleConfirm = async () => {
+    if (!onCandidateAction || !scheduleCandidate || !scheduledDate || !scheduledTime) return;
+
+    setActionLoading(`${scheduleCandidate.source}-schedule`);
+    try {
+      const scheduledFor = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
+      await onCandidateAction(scheduleCandidate.content, scheduleCandidate.source, 'schedule', scheduledFor);
+      setScheduleCandidate(null);
+      setScheduledDate('');
+      setScheduledTime('');
+      onClose();
+    } catch (error) {
+      console.error('Error scheduling candidate:', error);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   return (
@@ -150,11 +203,11 @@ export function AIGenerationModal({ metadata, onClose }: AIGenerationModalProps)
                     <line x1="200" y1="170" x2="200" y2="190" className="stroke-brand-neutral-300" strokeWidth="2"/>
                     <polygon points="200,200 195,190 205,190" className="fill-brand-neutral-300"/>
 
-                    {/* Judge box - Grok */}
+                    {/* Judge box - Gemini */}
                     <g transform="translate(100, 200)">
-                      <rect x="0" y="0" width="200" height="50" rx="8" className="fill-purple-100 stroke-purple-400" strokeWidth="2"/>
-                      <text x="100" y="22" textAnchor="middle" className="fill-purple-800 text-[8px] font-semibold">{metadata.judge?.model || 'grok-4-1-fast-reasoning'} Judge</text>
-                      <text x="100" y="38" textAnchor="middle" className="fill-purple-600 text-[9px]">(temp: 0.3)</text>
+                      <rect x="0" y="0" width="200" height="50" rx="8" className="fill-blue-100 stroke-blue-400" strokeWidth="2"/>
+                      <text x="100" y="22" textAnchor="middle" className="fill-blue-800 text-[8px] font-semibold">{metadata.judge?.model || 'gemini-3-pro-preview'} Judge</text>
+                      <text x="100" y="38" textAnchor="middle" className="fill-blue-600 text-[9px]">(temp: 0.3)</text>
                     </g>
 
                     {/* Down to winner */}
@@ -224,6 +277,7 @@ export function AIGenerationModal({ metadata, onClose }: AIGenerationModalProps)
               <div className="mt-4 space-y-4">
                 {metadata.candidates.map((candidate, index) => {
                   const isWinner = candidate.source === metadata.winner.source;
+                  const isLoading = actionLoading?.startsWith(candidate.source);
                   return (
                     <div
                       key={index}
@@ -252,6 +306,48 @@ export function AIGenerationModal({ metadata, onClose }: AIGenerationModalProps)
                       <p className="text-sm text-brand-navy-700 whitespace-pre-wrap">
                         {candidate.content}
                       </p>
+
+                      {/* Action buttons for non-winner candidates */}
+                      {onCandidateAction && !isWinner && (
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-brand-neutral-100">
+                          <button
+                            onClick={() => handleCandidateAction(candidate.content, candidate.source, 'proofreading')}
+                            disabled={isLoading}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-brand-navy-600 bg-brand-neutral-100 rounded-lg hover:bg-brand-neutral-200 transition-colors disabled:opacity-50"
+                          >
+                            {actionLoading === `${candidate.source}-proofreading` ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <FileEdit className="h-3 w-3" />
+                            )}
+                            To Proofreading
+                          </button>
+                          <button
+                            onClick={() => handleCandidateAction(candidate.content, candidate.source, 'schedule')}
+                            disabled={isLoading}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-brand-navy-600 bg-brand-neutral-100 rounded-lg hover:bg-brand-neutral-200 transition-colors disabled:opacity-50"
+                          >
+                            {actionLoading === `${candidate.source}-schedule` ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Clock className="h-3 w-3" />
+                            )}
+                            Schedule
+                          </button>
+                          <button
+                            onClick={() => handleCandidateAction(candidate.content, candidate.source, 'publish')}
+                            disabled={isLoading}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-brand-brown rounded-lg hover:bg-brand-brown/90 transition-colors disabled:opacity-50"
+                          >
+                            {actionLoading === `${candidate.source}-publish` ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Send className="h-3 w-3" />
+                            )}
+                            Send Now
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -335,6 +431,59 @@ export function AIGenerationModal({ metadata, onClose }: AIGenerationModalProps)
           )}
         </div>
       </div>
+
+      {/* Schedule Modal */}
+      {scheduleCandidate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-brand-navy-900 mb-4">Schedule Post</h3>
+            <p className="text-sm text-brand-navy-600 mb-4">
+              Schedule the {scheduleCandidate.source} version for publishing.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-brand-navy-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 border border-brand-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-brown/50"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-navy-700 mb-1">Time</label>
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-brand-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-brown/50"
+                />
+              </div>
+              <p className="text-xs text-brand-navy-400">Time is in your local timezone</p>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={() => {
+                  setScheduleCandidate(null);
+                  setScheduledDate('');
+                  setScheduledTime('');
+                }}
+                className="px-4 py-2 text-sm font-medium text-brand-navy-600 bg-brand-neutral-100 rounded-lg hover:bg-brand-neutral-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleScheduleConfirm}
+                disabled={!scheduledDate || !scheduledTime || actionLoading !== null}
+                className="px-4 py-2 text-sm font-medium text-white bg-brand-brown rounded-lg hover:bg-brand-brown/90 transition-colors disabled:opacity-50"
+              >
+                {actionLoading ? 'Scheduling...' : 'Schedule'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

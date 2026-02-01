@@ -12,7 +12,7 @@ import { GenerationProgressModal } from '@/components/posts/GenerationProgressMo
 import { createClient } from '@/lib/supabase/client';
 import { SourceType } from '@/components/posts/PostBadges';
 import { useUser } from '@/hooks/useUser';
-import { Loader2, Filter, User, RefreshCw, Sparkles } from 'lucide-react';
+import { Loader2, Filter, User, RefreshCw, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { Channel, GenerationMetadata } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -114,6 +114,7 @@ export default function ChannelPage() {
   const [generateLoading, setGenerateLoading] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [modalPost, setModalPost] = useState<Post | null>(null);
+  const [isAdminView, setIsAdminView] = useState(true);
   const POSTS_PER_PAGE = 10;
   const ADMIN_EMAIL = 'othmane.zizi@meroka.com';
 
@@ -366,6 +367,34 @@ export default function ChannelPage() {
     setRandomPosts(posts => posts.filter(p => p.id !== postId));
   };
 
+  const handleCandidateAction = async (
+    originalPostId: string,
+    candidateContent: string,
+    candidateSource: string,
+    action: 'proofreading' | 'schedule' | 'publish',
+    scheduledFor?: string
+  ) => {
+    const response = await fetch('/api/random/posts/candidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        originalPostId,
+        candidateContent,
+        candidateSource,
+        action,
+        scheduledFor,
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to create draft from candidate');
+    }
+
+    // Refresh the posts list to show updates
+    await fetchRandomPosts();
+  };
+
   const handleGeneratePosts = async () => {
     if (generateLoading) return;
     setGenerateLoading(true);
@@ -556,6 +585,31 @@ export default function ChannelPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Admin View Toggle - Admin only */}
+                    {user?.email === ADMIN_EMAIL && (
+                      <button
+                        onClick={() => setIsAdminView(!isAdminView)}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
+                          isAdminView
+                            ? "text-brand-navy-600 bg-brand-neutral-100 hover:bg-brand-neutral-200"
+                            : "text-purple-700 bg-purple-100 hover:bg-purple-200"
+                        )}
+                        title={isAdminView ? 'Preview user view' : 'Back to admin view'}
+                      >
+                        {isAdminView ? (
+                          <>
+                            <EyeOff className="h-4 w-4" />
+                            Preview User View
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="h-4 w-4" />
+                            Admin View
+                          </>
+                        )}
+                      </button>
+                    )}
                     {/* Generate Posts Button - Admin only */}
                     {user?.email === ADMIN_EMAIL && (
                       <button
@@ -602,8 +656,10 @@ export default function ChannelPage() {
                         key={post.id}
                         post={post}
                         currentUserEmail={user?.email}
+                        isAdminView={user?.email === ADMIN_EMAIL ? isAdminView : false}
                         onEdit={handleRandomEdit}
                         onAction={handleRandomAction}
+                        onCandidateAction={handleCandidateAction}
                       />
                     ))}
                   </>

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Pencil, Check, X, ExternalLink, Send, Clock, FileEdit, Sparkles, Cpu } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil, Check, X, ExternalLink, Send, Clock, FileEdit, Sparkles, Cpu, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlatformPreview } from '@/components/posts/PlatformPreview';
 import { AIGenerationModal } from '@/components/posts/AIGenerationModal';
+import { AlternateVersionsModal } from '@/components/posts/AlternateVersionsModal';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from '@/lib/utils';
 import { GenerationMetadata } from '@/types/generation';
@@ -45,13 +46,21 @@ interface RandomPost {
 interface RandomPostCardProps {
   post: RandomPost;
   currentUserEmail?: string;
+  isAdminView?: boolean;
   onEdit: (postId: string, content: string, summary: string) => Promise<void>;
   onAction: (postId: string, action: 'proofreading' | 'publish' | 'schedule', scheduledFor?: string) => Promise<void>;
+  onCandidateAction?: (
+    originalPostId: string,
+    candidateContent: string,
+    candidateSource: string,
+    action: 'proofreading' | 'schedule' | 'publish',
+    scheduledFor?: string
+  ) => Promise<void>;
 }
 
 const ADMIN_EMAIL = 'othmane.zizi@meroka.com';
 
-export function RandomPostCard({ post, currentUserEmail, onEdit, onAction }: RandomPostCardProps) {
+export function RandomPostCard({ post, currentUserEmail, isAdminView = true, onEdit, onAction, onCandidateAction }: RandomPostCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.current_content || post.content);
   const [editSummary, setEditSummary] = useState('');
@@ -63,6 +72,7 @@ export function RandomPostCard({ post, currentUserEmail, onEdit, onAction }: Ran
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [showAIDetailsModal, setShowAIDetailsModal] = useState(false);
+  const [showAlternatesModal, setShowAlternatesModal] = useState(false);
 
   const currentContent = post.current_content || post.content;
   const hasEdits = post.edit_history && post.edit_history.length > 0;
@@ -142,15 +152,25 @@ export function RandomPostCard({ post, currentUserEmail, onEdit, onAction }: Ran
           </div>
           {!isEditing && (
             <div className="flex items-center gap-1">
-              {/* AI Details Button - only visible to admin when metadata exists */}
-              {currentUserEmail === ADMIN_EMAIL && post.generation_metadata && (
-                <button
-                  onClick={() => setShowAIDetailsModal(true)}
-                  className="p-1.5 rounded-lg hover:bg-purple-50 text-purple-500 hover:text-purple-700 transition-colors"
-                  title="View AI generation details"
-                >
-                  <Cpu className="h-4 w-4" />
-                </button>
+              {/* AI Details / Alternate Versions Button - based on view mode */}
+              {post.generation_metadata && post.generation_metadata.candidates.length > 1 && (
+                isAdminView ? (
+                  <button
+                    onClick={() => setShowAIDetailsModal(true)}
+                    className="p-1.5 rounded-lg hover:bg-purple-50 text-purple-500 hover:text-purple-700 transition-colors"
+                    title="View AI generation details"
+                  >
+                    <Cpu className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowAlternatesModal(true)}
+                    className="p-1.5 rounded-lg hover:bg-brand-brown/10 text-brand-brown hover:text-brand-brown/80 transition-colors"
+                    title="View alternate versions"
+                  >
+                    <Layers className="h-4 w-4" />
+                  </button>
+                )
               )}
               <button
                 onClick={() => setIsEditing(true)}
@@ -388,11 +408,32 @@ export function RandomPostCard({ post, currentUserEmail, onEdit, onAction }: Ran
         </div>
       )}
 
-      {/* AI Generation Details Modal */}
+      {/* AI Generation Details Modal (Admin View) */}
       {showAIDetailsModal && post.generation_metadata && (
         <AIGenerationModal
           metadata={post.generation_metadata}
+          originalPostId={post.id}
+          channel={post.channel}
           onClose={() => setShowAIDetailsModal(false)}
+          onCandidateAction={onCandidateAction ? async (content, source, action, scheduledFor) => {
+            await onCandidateAction(post.id, content, source, action, scheduledFor);
+          } : undefined}
+        />
+      )}
+
+      {/* Alternate Versions Modal (Non-Admin View) */}
+      {showAlternatesModal && post.generation_metadata && (
+        <AlternateVersionsModal
+          candidates={post.generation_metadata.candidates}
+          winnerSource={post.generation_metadata.winner.source}
+          originalPostId={post.id}
+          channel={post.channel}
+          onClose={() => setShowAlternatesModal(false)}
+          onSelectVersion={async (content, source, action, scheduledFor) => {
+            if (onCandidateAction) {
+              await onCandidateAction(post.id, content, source, action, scheduledFor);
+            }
+          }}
         />
       )}
     </div>

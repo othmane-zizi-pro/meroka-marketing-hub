@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
                 reason: llmResponse.reason || 'No reason provided',
               },
               judge: {
-                model: 'grok-4-1-fast-reasoning',
+                model: 'gemini-3-pro-preview',
                 prompt: llmResponse.judge_prompt || '',
               },
               generated_at: new Date().toISOString(),

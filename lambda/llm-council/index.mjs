@@ -269,24 +269,26 @@ ${c.content}
 Respond in this exact JSON format:
 {"winner": <number 1-${candidates.length}>, "reason": "<brief explanation>"}`;
 
-  const response = await fetch('https://api.x.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROK_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'grok-4-1-fast-reasoning',
-      messages: [{ role: 'user', content: judgePrompt }],
-      max_tokens: 200,
-      temperature: 0.3,
-    }),
-  });
+  // Use Gemini as the judge
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: judgePrompt }] }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 1000, // Gemini uses thinking tokens
+        },
+      }),
+    }
+  );
 
   if (!response.ok) {
     // If judge fails, return first candidate
     const errorBody = await response.text();
-    console.error('Judge failed:', response.status, errorBody);
+    console.error('Gemini Judge failed:', response.status, errorBody);
     return {
       winner: { ...candidates[0], reason: 'Judge unavailable' },
       judgePrompt: judgePrompt,
@@ -294,7 +296,15 @@ Respond in this exact JSON format:
   }
 
   const data = await response.json();
-  const judgeResponse = data.choices[0]?.message?.content?.trim();
+  const judgeResponse = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+  if (!judgeResponse) {
+    console.error('Gemini Judge returned empty response:', JSON.stringify(data));
+    return {
+      winner: { ...candidates[0], reason: 'Judge returned empty response' },
+      judgePrompt: judgePrompt,
+    };
+  }
 
   try {
     // Extract JSON from response
@@ -313,7 +323,7 @@ Respond in this exact JSON format:
       }
     }
   } catch (e) {
-    console.error('Failed to parse judge response:', judgeResponse);
+    console.error('Failed to parse Gemini judge response:', judgeResponse);
   }
 
   // Default to first candidate
