@@ -106,48 +106,31 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Fetch top 3 posts for few-shot examples
-        // Channel platform matches source platform directly (linkedin -> linkedin, x -> x)
-        const channelPlatform = sourcePlatform;
+        // Fetch top 3 published posts as few-shot examples
+        // These are real posts from social_posts table (actual published content)
+        console.log(`Fetching few-shot examples from social_posts for channel: ${sourcePlatform}`);
 
-        // Get channel ID for this platform
-        const { data: channelData } = await supabase
-          .from('channels')
-          .select('id')
-          .eq('platform', channelPlatform)
-          .single();
+        let fewShotPosts: { content: string; engagement: string }[] = [];
 
-        let topPerformingPosts: { content: string; likes_count: number }[] = [];
+        const { data: publishedPosts, error: publishedPostsError } = await supabase
+          .from('social_posts')
+          .select('content, external_url')
+          .eq('channel', sourcePlatform)
+          .not('content', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(10);  // Fetch 10, we'll pick best 3
 
-        if (channelData?.id) {
-          console.log(`Fetching top posts for channel ${channelPlatform} (id: ${channelData.id})`);
-
-          // Fetch top 3 posts by likes from campaigns in this channel
-          const { data: topPosts, error: topPostsError } = await supabase
-            .from('posts')
-            .select(`
-              content,
-              likes_count,
-              campaigns!inner (channel_id)
-            `)
-            .eq('campaigns.channel_id', channelData.id)
-            .not('content', 'is', null)
-            .order('likes_count', { ascending: false })
-            .limit(3);
-
-          if (topPostsError) {
-            console.error('Error fetching top posts:', topPostsError);
-          } else if (topPosts && topPosts.length > 0) {
-            topPerformingPosts = topPosts.map(p => ({
-              content: p.content,
-              likes_count: p.likes_count || 0,
-            }));
-            console.log(`Found ${topPerformingPosts.length} top-performing posts for few-shot examples:`, topPerformingPosts.map(p => p.content.substring(0, 50) + '...'));
-          } else {
-            console.log('No posts found for few-shot examples');
-          }
+        if (publishedPostsError) {
+          console.error('Error fetching published posts:', publishedPostsError);
+        } else if (publishedPosts && publishedPosts.length > 0) {
+          // Use the 3 most recent posts as examples (they represent our current voice)
+          fewShotPosts = publishedPosts.slice(0, 3).map(p => ({
+            content: p.content,
+            engagement: 'published', // We know these performed well enough to publish
+          }));
+          console.log(`Found ${fewShotPosts.length} published posts for few-shot examples`);
         } else {
-          console.log(`No channel found for platform: ${channelPlatform}`);
+          console.log('No published posts found for few-shot examples');
         }
 
         // Randomly select posts for inspiration
@@ -159,11 +142,11 @@ export async function POST(request: NextRequest) {
           try {
             // Generate AI content based on inspiration
             // This calls the LLM to create new content inspired by the historical post
-            // Pass top-performing posts as few-shot examples
+            // Pass published posts as few-shot examples
             const llmResponse = await generateContentFromInspiration(
               inspiration.content,
               sourcePlatform,
-              topPerformingPosts
+              fewShotPosts
             );
 
             if (!llmResponse) {
@@ -240,7 +223,7 @@ export async function POST(request: NextRequest) {
 async function generateContentFromInspiration(
   inspirationContent: string,
   platform: string,
-  fewShotExamples: { content: string; likes_count: number }[] = []
+  fewShotExamples: { content: string; engagement: string }[] = []
 ): Promise<LLMCouncilResponse | null> {
   try {
     console.log(`Calling LLM Council for ${platform} post with ${fewShotExamples.length} few-shot examples...`);

@@ -24,9 +24,9 @@ export const handler = async (event) => {
     let fewShotSection = '';
     if (fewShotExamples && fewShotExamples.length > 0) {
       fewShotSection = `
-Here are our top-performing posts. Study what makes them resonate—the directness, the specificity, the irreverent edge:
+Here are examples of our published posts that performed well. Study what makes them resonate—the directness, the specificity, the irreverent edge:
 
-${fewShotExamples.map((ex, i) => `--- TOP POST ${i + 1} (${ex.likes_count} likes) ---
+${fewShotExamples.map((ex, i) => `--- EXAMPLE POST ${i + 1} ---
 ${ex.content}
 `).join('\n')}
 `;
