@@ -8,6 +8,7 @@ import { PostModal } from '@/components/posts/PostModal';
 import { EmployeePostCard } from '@/components/posts/EmployeePostCard';
 import { ComposePostCard } from '@/components/posts/ComposePostCard';
 import { RandomPostCard } from '@/components/posts/RandomPostCard';
+import { GenerationProgressModal } from '@/components/posts/GenerationProgressModal';
 import { createClient } from '@/lib/supabase/client';
 import { SourceType } from '@/components/posts/PostBadges';
 import { useUser } from '@/hooks/useUser';
@@ -111,6 +112,7 @@ export default function ChannelPage() {
   const [loading, setLoading] = useState(true);
   const [randomLoading, setRandomLoading] = useState(false);
   const [generateLoading, setGenerateLoading] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [modalPost, setModalPost] = useState<Post | null>(null);
   const POSTS_PER_PAGE = 10;
   const ADMIN_EMAIL = 'othmane.zizi@meroka.com';
@@ -367,6 +369,7 @@ export default function ChannelPage() {
   const handleGeneratePosts = async () => {
     if (generateLoading) return;
     setGenerateLoading(true);
+    setShowGenerateModal(true);
     try {
       const response = await fetch('/api/admin/generate-posts', {
         method: 'POST',
@@ -383,6 +386,7 @@ export default function ChannelPage() {
       console.error('Error generating posts:', error);
     } finally {
       setGenerateLoading(false);
+      setShowGenerateModal(false);
     }
   };
 
@@ -748,6 +752,12 @@ export default function ChannelPage() {
           onLikeChange={handleLikeChange}
         />
       )}
+
+      {/* Generation Progress Modal */}
+      <GenerationProgressModal
+        isOpen={showGenerateModal}
+        onComplete={() => setShowGenerateModal(false)}
+      />
     </div>
   );
 }
