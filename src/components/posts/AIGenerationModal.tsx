@@ -112,20 +112,20 @@ export function AIGenerationModal({ metadata, onClose }: AIGenerationModalProps)
                 <div className="bg-gradient-to-b from-brand-neutral-50 to-white rounded-xl p-6 border border-brand-neutral-200">
                   <svg viewBox="0 0 400 320" className="w-full max-w-md mx-auto">
                     {/* Model boxes - dynamic from metadata */}
-                    <g transform="translate(30, 20)">
-                      <rect x="0" y="0" width="80" height="50" rx="8" className="fill-green-100 stroke-green-300" strokeWidth="2"/>
-                      <text x="40" y="22" textAnchor="middle" className="fill-green-800 text-xs font-semibold">{metadata.models_used?.[0]?.split(' ')[0] || 'GPT-5.2'}</text>
-                      <text x="40" y="38" textAnchor="middle" className="fill-green-600 text-xs">(temp: 0.8)</text>
+                    <g transform="translate(10, 20)">
+                      <rect x="0" y="0" width="100" height="50" rx="8" className="fill-green-100 stroke-green-300" strokeWidth="2"/>
+                      <text x="50" y="22" textAnchor="middle" className="fill-green-800 text-[9px] font-semibold">{metadata.models_used?.[0] || 'gpt-5.2'}</text>
+                      <text x="50" y="38" textAnchor="middle" className="fill-green-600 text-[9px]">(temp: 0.8)</text>
                     </g>
-                    <g transform="translate(160, 20)">
-                      <rect x="0" y="0" width="80" height="50" rx="8" className="fill-blue-100 stroke-blue-300" strokeWidth="2"/>
-                      <text x="40" y="22" textAnchor="middle" className="fill-blue-800 text-xs font-semibold">{metadata.models_used?.[1]?.replace(' Pro', '') || 'Gemini 3'}</text>
-                      <text x="40" y="38" textAnchor="middle" className="fill-blue-600 text-xs">(temp: 0.8)</text>
+                    <g transform="translate(140, 20)">
+                      <rect x="0" y="0" width="120" height="50" rx="8" className="fill-blue-100 stroke-blue-300" strokeWidth="2"/>
+                      <text x="60" y="22" textAnchor="middle" className="fill-blue-800 text-[8px] font-semibold">{metadata.models_used?.[1] || 'gemini-3-pro-preview'}</text>
+                      <text x="60" y="38" textAnchor="middle" className="fill-blue-600 text-[9px]">(temp: 0.8)</text>
                     </g>
-                    <g transform="translate(290, 20)">
-                      <rect x="0" y="0" width="80" height="50" rx="8" className="fill-purple-100 stroke-purple-300" strokeWidth="2"/>
-                      <text x="40" y="22" textAnchor="middle" className="fill-purple-800 text-xs font-semibold">{metadata.models_used?.[2] || 'Grok 4.1'}</text>
-                      <text x="40" y="38" textAnchor="middle" className="fill-purple-600 text-xs">(temp: 0.8)</text>
+                    <g transform="translate(280, 20)">
+                      <rect x="0" y="0" width="110" height="50" rx="8" className="fill-purple-100 stroke-purple-300" strokeWidth="2"/>
+                      <text x="55" y="22" textAnchor="middle" className="fill-purple-800 text-[7px] font-semibold">{metadata.models_used?.[2] || 'grok-4-1-fast-reasoning'}</text>
+                      <text x="55" y="38" textAnchor="middle" className="fill-purple-600 text-[9px]">(temp: 0.8)</text>
                     </g>
 
                     {/* Connecting lines down */}
@@ -150,11 +150,11 @@ export function AIGenerationModal({ metadata, onClose }: AIGenerationModalProps)
                     <line x1="200" y1="170" x2="200" y2="190" className="stroke-brand-neutral-300" strokeWidth="2"/>
                     <polygon points="200,200 195,190 205,190" className="fill-brand-neutral-300"/>
 
-                    {/* Judge box */}
-                    <g transform="translate(120, 200)">
-                      <rect x="0" y="0" width="160" height="50" rx="8" className="fill-green-100 stroke-green-400" strokeWidth="2"/>
-                      <text x="80" y="22" textAnchor="middle" className="fill-green-800 text-xs font-semibold">{metadata.judge?.model || 'GPT-5.2'} Judge</text>
-                      <text x="80" y="38" textAnchor="middle" className="fill-green-600 text-xs">(temp: 0.3)</text>
+                    {/* Judge box - Grok */}
+                    <g transform="translate(100, 200)">
+                      <rect x="0" y="0" width="200" height="50" rx="8" className="fill-purple-100 stroke-purple-400" strokeWidth="2"/>
+                      <text x="100" y="22" textAnchor="middle" className="fill-purple-800 text-[8px] font-semibold">{metadata.judge?.model || 'grok-4-1-fast-reasoning'} Judge</text>
+                      <text x="100" y="38" textAnchor="middle" className="fill-purple-600 text-[9px]">(temp: 0.3)</text>
                     </g>
 
                     {/* Down to winner */}

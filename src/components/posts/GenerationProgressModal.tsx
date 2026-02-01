@@ -17,7 +17,7 @@ const STEPS = [
   { id: 'save', label: 'Saving drafts', icon: CheckCircle2, duration: 2000 },
 ];
 
-const MODELS = ['GPT-5.2', 'Gemini 3 Pro', 'Grok 4.1 Fast'];
+const MODELS = ['gpt-5.2', 'gemini-3-pro-preview', 'grok-4-1-fast-reasoning'];
 
 export function GenerationProgressModal({
   isOpen,

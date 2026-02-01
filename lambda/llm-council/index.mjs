@@ -84,7 +84,7 @@ Generate ONLY the post. No explanations, no quotes around it, no meta-commentary
 
     console.log('Generating posts from council...');
 
-    const modelsUsed = ['GPT-5.2', 'Gemini 3 Pro', 'Grok 4.1 Fast'];
+    const modelsUsed = ['gpt-5.2', 'gemini-3-pro-preview', 'grok-4-1-fast-reasoning'];
 
     // Call all 3 LLMs in parallel
     const [openaiResult, geminiResult, grokResult] = await Promise.allSettled([
@@ -96,19 +96,19 @@ Generate ONLY the post. No explanations, no quotes around it, no meta-commentary
     const candidates = [];
 
     if (openaiResult.status === 'fulfilled' && openaiResult.value) {
-      candidates.push({ source: 'OpenAI GPT-4', content: openaiResult.value });
+      candidates.push({ source: 'gpt-5.2', content: openaiResult.value });
     } else {
       console.error('OpenAI failed:', openaiResult.reason);
     }
 
     if (geminiResult.status === 'fulfilled' && geminiResult.value) {
-      candidates.push({ source: 'Google Gemini', content: geminiResult.value });
+      candidates.push({ source: 'gemini-3-pro-preview', content: geminiResult.value });
     } else {
       console.error('Gemini failed:', geminiResult.reason);
     }
 
     if (grokResult.status === 'fulfilled' && grokResult.value) {
-      candidates.push({ source: 'xAI Grok', content: grokResult.value });
+      candidates.push({ source: 'grok-4-1-fast-reasoning', content: grokResult.value });
     } else {
       console.error('Grok failed:', grokResult.reason);
     }
@@ -269,23 +269,24 @@ ${c.content}
 Respond in this exact JSON format:
 {"winner": <number 1-${candidates.length}>, "reason": "<brief explanation>"}`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://api.x.ai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Authorization': `Bearer ${GROK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-5.2',
+      model: 'grok-4-1-fast-reasoning',
       messages: [{ role: 'user', content: judgePrompt }],
-      max_completion_tokens: 200,
+      max_tokens: 200,
       temperature: 0.3,
     }),
   });
 
   if (!response.ok) {
     // If judge fails, return first candidate
-    console.error('Judge failed, returning first candidate');
+    const errorBody = await response.text();
+    console.error('Judge failed:', response.status, errorBody);
     return {
       winner: { ...candidates[0], reason: 'Judge unavailable' },
       judgePrompt: judgePrompt,
