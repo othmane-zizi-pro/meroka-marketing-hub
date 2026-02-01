@@ -111,20 +111,20 @@ export function AIGenerationModal({ metadata, onClose }: AIGenerationModalProps)
                 {/* SVG Diagram */}
                 <div className="bg-gradient-to-b from-brand-neutral-50 to-white rounded-xl p-6 border border-brand-neutral-200">
                   <svg viewBox="0 0 400 320" className="w-full max-w-md mx-auto">
-                    {/* Model boxes */}
+                    {/* Model boxes - dynamic from metadata */}
                     <g transform="translate(30, 20)">
                       <rect x="0" y="0" width="80" height="50" rx="8" className="fill-green-100 stroke-green-300" strokeWidth="2"/>
-                      <text x="40" y="22" textAnchor="middle" className="fill-green-800 text-xs font-semibold">GPT-4o</text>
+                      <text x="40" y="22" textAnchor="middle" className="fill-green-800 text-xs font-semibold">{metadata.models_used?.[0]?.split(' ')[0] || 'GPT-5.2'}</text>
                       <text x="40" y="38" textAnchor="middle" className="fill-green-600 text-xs">(temp: 0.8)</text>
                     </g>
                     <g transform="translate(160, 20)">
                       <rect x="0" y="0" width="80" height="50" rx="8" className="fill-blue-100 stroke-blue-300" strokeWidth="2"/>
-                      <text x="40" y="22" textAnchor="middle" className="fill-blue-800 text-xs font-semibold">Gemini 1.5</text>
+                      <text x="40" y="22" textAnchor="middle" className="fill-blue-800 text-xs font-semibold">{metadata.models_used?.[1]?.replace(' Pro', '') || 'Gemini 3'}</text>
                       <text x="40" y="38" textAnchor="middle" className="fill-blue-600 text-xs">(temp: 0.8)</text>
                     </g>
                     <g transform="translate(290, 20)">
                       <rect x="0" y="0" width="80" height="50" rx="8" className="fill-purple-100 stroke-purple-300" strokeWidth="2"/>
-                      <text x="40" y="22" textAnchor="middle" className="fill-purple-800 text-xs font-semibold">Grok 2</text>
+                      <text x="40" y="22" textAnchor="middle" className="fill-purple-800 text-xs font-semibold">{metadata.models_used?.[2] || 'Grok 4.1'}</text>
                       <text x="40" y="38" textAnchor="middle" className="fill-purple-600 text-xs">(temp: 0.8)</text>
                     </g>
 
@@ -153,7 +153,7 @@ export function AIGenerationModal({ metadata, onClose }: AIGenerationModalProps)
                     {/* Judge box */}
                     <g transform="translate(120, 200)">
                       <rect x="0" y="0" width="160" height="50" rx="8" className="fill-green-100 stroke-green-400" strokeWidth="2"/>
-                      <text x="80" y="22" textAnchor="middle" className="fill-green-800 text-xs font-semibold">GPT-4o Judge</text>
+                      <text x="80" y="22" textAnchor="middle" className="fill-green-800 text-xs font-semibold">{metadata.judge?.model || 'GPT-5.2'} Judge</text>
                       <text x="80" y="38" textAnchor="middle" className="fill-green-600 text-xs">(temp: 0.3)</text>
                     </g>
 
