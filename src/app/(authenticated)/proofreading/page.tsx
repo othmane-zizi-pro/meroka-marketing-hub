@@ -262,41 +262,40 @@ export default function ProofreadingPage() {
               {drafts.map(draft => (
                 <Card key={draft.id} className="border-brand-neutral-100 overflow-hidden">
                   <CardContent className="p-0">
-                    {/* Header */}
-                    <div className="p-4 border-b border-brand-neutral-100">
+                    {/* Header - compact */}
+                    <div className="px-4 py-2 border-b border-brand-neutral-100 bg-brand-neutral-50/50">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 text-sm text-brand-navy-600">
                           <div className={cn(
-                            "flex h-10 w-10 items-center justify-center rounded-full text-white",
+                            "flex h-6 w-6 items-center justify-center rounded-full text-white",
                             draft.channel === 'linkedin' ? 'bg-blue-600' : 'bg-black'
                           )}>
                             {getChannelIcon(draft.channel)}
                           </div>
-                          <div>
-                            <p className="font-medium text-brand-navy-900">
-                              {draft.author_name}
-                              {isAuthor(draft) && (
-                                <span className="ml-2 text-xs bg-brand-brown/10 text-brand-brown px-2 py-0.5 rounded-full">
-                                  Your post
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-xs text-brand-navy-400">
-                              {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
-                              {draft.last_edited_at && (
-                                <span> · Edited {formatDistanceToNow(new Date(draft.last_edited_at), { addSuffix: true })}</span>
-                              )}
-                            </p>
-                          </div>
+                          <span>
+                            Sent by <span className="font-medium">{draft.author_name}</span>
+                            {isAuthor(draft) && (
+                              <span className="ml-1 text-xs text-brand-brown">(you)</span>
+                            )}
+                          </span>
+                          <span className="text-brand-navy-400">·</span>
+                          <span className="text-brand-navy-400">
+                            {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
+                          </span>
+                          {draft.last_edited_at && (
+                            <span className="text-brand-navy-400">
+                              · Edited {formatDistanceToNow(new Date(draft.last_edited_at), { addSuffix: true })}
+                            </span>
+                          )}
                         </div>
                         <button
                           onClick={() => toggleExpand(draft.id)}
-                          className="p-2 rounded-lg hover:bg-brand-neutral-100 text-brand-navy-500"
+                          className="p-1 rounded-lg hover:bg-brand-neutral-100 text-brand-navy-400"
                         >
                           {expandedDraft === draft.id ? (
-                            <ChevronUp className="h-5 w-5" />
+                            <ChevronUp className="h-4 w-4" />
                           ) : (
-                            <ChevronDown className="h-5 w-5" />
+                            <ChevronDown className="h-4 w-4" />
                           )}
                         </button>
                       </div>
