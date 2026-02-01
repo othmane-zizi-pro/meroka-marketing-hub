@@ -120,7 +120,7 @@ export default function PostingPage() {
   const [scheduledTime, setScheduledTime] = useState('');
   const [selectedLinkedInPostType, setSelectedLinkedInPostType] = useState<LinkedInPostType>('post');
   const [linkedinPostUrl, setLinkedinPostUrl] = useState('');
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ADMIN_EMAIL = 'othmane.zizi@meroka.com';

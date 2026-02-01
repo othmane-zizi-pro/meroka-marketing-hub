@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check, X, History, Linkedin, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { XIcon } from '@/components/ui/icons';
+import { PlatformPreview } from '@/components/posts/PlatformPreview';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useUser } from '@/hooks/useUser';
@@ -307,6 +308,14 @@ export default function ProofreadingPage() {
                               Content has been edited from original
                             </p>
                           )}
+                          {/* Platform Preview */}
+                          <div className="mt-4">
+                            <PlatformPreview
+                              platform={draft.channel as 'linkedin' | 'x'}
+                              content={draft.current_content || draft.content}
+                              mediaUrl={draft.media_url || undefined}
+                            />
+                          </div>
                         </>
                       )}
                     </div>

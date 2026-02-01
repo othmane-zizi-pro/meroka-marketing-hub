@@ -8,3 +8,5 @@ Coding guidelines
 - If you want to use AWS let me know first
 - Use the colors.md skill for the UI styling
 - Use Agent Browser to get feedback on the UI
+
+aws sso login --profile AdministratorAccess-168504280929
