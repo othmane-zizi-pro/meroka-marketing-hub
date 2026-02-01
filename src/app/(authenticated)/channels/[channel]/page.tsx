@@ -115,6 +115,7 @@ export default function ChannelPage() {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [modalPost, setModalPost] = useState<Post | null>(null);
   const [isAdminView, setIsAdminView] = useState(true);
+  const [randomCurrentPage, setRandomCurrentPage] = useState(1);
   const POSTS_PER_PAGE = 10;
   const ADMIN_EMAIL = 'othmane.zizi@meroka.com';
 
@@ -312,6 +313,7 @@ export default function ChannelPage() {
 
   const fetchRandomPosts = async () => {
     setRandomLoading(true);
+    setRandomCurrentPage(1); // Reset to first page on refresh
     try {
       // Map channel to platform
       const platformMap: Record<string, string> = {
@@ -651,17 +653,57 @@ export default function ChannelPage() {
                     <p className="text-sm text-brand-navy-500">
                       {randomPosts.length} pending post{randomPosts.length !== 1 ? 's' : ''}
                     </p>
-                    {randomPosts.map((post) => (
-                      <RandomPostCard
-                        key={post.id}
-                        post={post}
-                        currentUserEmail={user?.email}
-                        isAdminView={user?.email === ADMIN_EMAIL ? isAdminView : false}
-                        onEdit={handleRandomEdit}
-                        onAction={handleRandomAction}
-                        onCandidateAction={handleCandidateAction}
-                      />
-                    ))}
+                    {randomPosts
+                      .slice((randomCurrentPage - 1) * POSTS_PER_PAGE, randomCurrentPage * POSTS_PER_PAGE)
+                      .map((post) => (
+                        <RandomPostCard
+                          key={post.id}
+                          post={post}
+                          currentUserEmail={user?.email}
+                          isAdminView={user?.email === ADMIN_EMAIL ? isAdminView : false}
+                          onEdit={handleRandomEdit}
+                          onAction={handleRandomAction}
+                          onCandidateAction={handleCandidateAction}
+                        />
+                      ))}
+
+                    {/* Pagination for AI-Generated Posts */}
+                    {randomPosts.length > POSTS_PER_PAGE && (
+                      <div className="flex items-center justify-between pt-6 border-t border-brand-neutral-100 mt-6">
+                        <span className="text-sm text-brand-navy-500">
+                          Showing {(randomCurrentPage - 1) * POSTS_PER_PAGE + 1}-{Math.min(randomCurrentPage * POSTS_PER_PAGE, randomPosts.length)} of {randomPosts.length} posts
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setRandomCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={randomCurrentPage === 1}
+                            className={cn(
+                              "px-4 py-2 text-sm font-medium rounded-lg border transition-colors",
+                              randomCurrentPage === 1
+                                ? "border-brand-neutral-200 text-brand-navy-300 cursor-not-allowed"
+                                : "border-brand-neutral-200 text-brand-navy-600 hover:bg-brand-neutral-50"
+                            )}
+                          >
+                            Previous
+                          </button>
+                          <span className="text-sm text-brand-navy-600 px-2">
+                            Page {randomCurrentPage} of {Math.ceil(randomPosts.length / POSTS_PER_PAGE)}
+                          </span>
+                          <button
+                            onClick={() => setRandomCurrentPage(p => Math.min(Math.ceil(randomPosts.length / POSTS_PER_PAGE), p + 1))}
+                            disabled={randomCurrentPage === Math.ceil(randomPosts.length / POSTS_PER_PAGE)}
+                            className={cn(
+                              "px-4 py-2 text-sm font-medium rounded-lg border transition-colors",
+                              randomCurrentPage === Math.ceil(randomPosts.length / POSTS_PER_PAGE)
+                                ? "border-brand-neutral-200 text-brand-navy-300 cursor-not-allowed"
+                                : "border-brand-neutral-200 text-brand-navy-600 hover:bg-brand-neutral-50"
+                            )}
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
