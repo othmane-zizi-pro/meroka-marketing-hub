@@ -18,35 +18,69 @@ export const handler = async (event) => {
     }
 
     const platformName = platform === 'linkedin' ? 'LinkedIn' : 'X/Twitter';
-    const charLimit = platform === 'linkedin' ? '100-500 characters' : 'under 280 characters';
+    const charLimit = platform === 'linkedin' ? '200-600 characters' : 'under 280 characters';
 
     // Build few-shot examples section if available
     let fewShotSection = '';
     if (fewShotExamples && fewShotExamples.length > 0) {
       fewShotSection = `
-Here are examples of our top-performing posts that received the most engagement. Use these as inspiration for tone, style, and what resonates with our audience:
+Here are our top-performing posts. Study what makes them resonate—the directness, the specificity, the irreverent edge:
 
 ${fewShotExamples.map((ex, i) => `--- TOP POST ${i + 1} (${ex.likes_count} likes) ---
 ${ex.content}
 `).join('\n')}
-Study what makes these posts successful and incorporate similar qualities into your new post.
-
 `;
     }
 
-    const prompt = `Create a new ${platformName} post inspired by the following content.
+    // Company context for mission-aligned content
+    const companyContext = `
+## MEROKA'S MISSION
+"Saving independence in medicine" - We're building a collective of independent physician practice owners to fight back against consolidation by private equity, health systems, and insurance companies.
+
+## VOICE & TONE
+- IRREVERENT, not corporate. Think Dr. Glaucomflecken, not McKinsey.
+- Direct and punchy. Call out the villains by name: PE vultures, insurance bureaucracy, admin bloat.
+- Use "hot takes," "unpopular opinions," contrarian framing.
+- Specific over vague: real numbers, concrete examples, not platitudes.
+- Authentic emotion: frustration, determination, dark humor about the absurdity.
+- Balance idealism with pragmatism: "That's not idealism—that's strategy."
+
+## HERO/VILLAIN FRAMING
+- HEROES: Independent physicians, care teams, front-line clinicians fighting the good fight
+- VILLAINS: The System—PE consolidation, prior auth nightmares, insurance denials, admin bloat, 7-minute corporate visits
+
+## TOPICS THAT RESONATE
+- Prior authorization absurdity
+- Insurance denials and appeals
+- EMR/charting burden (Epic, note bloat)
+- Private equity destroying practices
+- Physician burnout and moral injury
+- The myth that you "can't compete" alone
+- Succession challenges for retiring docs
+- Collective power without losing control
+`;
+
+    const prompt = `You are writing social media content for Meroka, a healthcare company on a mission to save independent medicine from consolidation.
+
+${companyContext}
 ${fewShotSection}
-The new post should:
-- Cover a similar topic or theme but with a fresh, unique perspective
-- Match the tone appropriate for ${platformName} (${platform === 'linkedin' ? 'professional, insightful, thought-provoking' : 'concise, engaging, punchy'})
-- Be completely original, not a rephrasing of the inspiration
+---
+
+Create a new ${platformName} post inspired by the content below.
+
+The post MUST:
+- Be IRREVERENT and PUNCHY, not corporate or sanitized
+- Take a clear stance—we're pro-independence, anti-consolidation
+- ${platform === 'linkedin' ? 'Be thought-provoking, maybe start with a hot take or contrarian observation' : 'Be sharp and quotable, the kind of thing physicians screenshot and share'}
+- Use specific details when possible, not vague inspiration-speak
 - Be ${charLimit}
-- Be ready to post as-is (no hashtags unless natural, no emojis unless fitting)
+- Sound like a real person who's lived this, not a marketing department
+- NO hashtags, NO emojis unless absolutely natural
 
 Inspiration content:
 "${inspiration}"
 
-Generate ONLY the post content. No explanations, no quotes around it, no meta-commentary.`;
+Generate ONLY the post. No explanations, no quotes around it, no meta-commentary.`;
 
     console.log('Generating posts from council...');
 
@@ -200,16 +234,22 @@ async function callGrok(prompt) {
 async function judgeContent(candidates, platform) {
   const platformName = platform === 'linkedin' ? 'LinkedIn' : 'X/Twitter';
 
-  const judgePrompt = `You are a social media expert judging ${platformName} posts for maximum impact.
+  const judgePrompt = `You are judging ${platformName} posts for Meroka, a healthcare company fighting to save independent medicine from PE consolidation.
 
-Evaluate these ${candidates.length} candidate posts and pick the BEST one.
+Pick the BEST post from these ${candidates.length} candidates.
 
-Consider:
-- Engagement potential (will people like, comment, share?)
-- Authenticity and originality
-- Appropriate tone for ${platformName}
-- Clarity and punch
-- Professional quality
+Prioritize (in order):
+1. IRREVERENCE & PUNCH - Does it have edge? Would a burned-out physician share this?
+2. SPECIFICITY - Concrete details beat vague platitudes
+3. MISSION ALIGNMENT - Pro-independence, anti-consolidation stance clear?
+4. SHAREABILITY - Would physicians screenshot this and send to colleagues?
+5. AUTHENTICITY - Sounds like a real person, not a marketing department
+
+AVOID posts that:
+- Sound corporate or sanitized
+- Use empty inspiration-speak
+- Are too safe or hedged
+- Could have been written by any healthcare company
 
 ${candidates.map((c, i) => `--- CANDIDATE ${i + 1} (${c.source}) ---
 ${c.content}
