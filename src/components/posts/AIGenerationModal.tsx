@@ -11,7 +11,7 @@ interface AIGenerationModalProps {
 }
 
 export function AIGenerationModal({ metadata, onClose }: AIGenerationModalProps) {
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['diagram']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['diagram', 'candidates']));
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {

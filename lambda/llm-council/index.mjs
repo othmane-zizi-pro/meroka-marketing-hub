@@ -84,7 +84,7 @@ Generate ONLY the post. No explanations, no quotes around it, no meta-commentary
 
     console.log('Generating posts from council...');
 
-    const modelsUsed = ['GPT-5.2', 'Gemini 3 Pro', 'Grok 4.1'];
+    const modelsUsed = ['GPT-5.2', 'Gemini 3 Pro', 'Grok 4.1 Fast'];
 
     // Call all 3 LLMs in parallel
     const [openaiResult, geminiResult, grokResult] = await Promise.allSettled([
@@ -171,13 +171,15 @@ async function callOpenAI(prompt) {
     body: JSON.stringify({
       model: 'gpt-5.2',
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 500,
+      max_completion_tokens: 500,
       temperature: 0.8,
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`);
+    const errorBody = await response.text();
+    console.error(`OpenAI API error ${response.status}:`, errorBody);
+    throw new Error(`OpenAI API error: ${response.status} - ${errorBody}`);
   }
 
   const data = await response.json();
@@ -194,18 +196,25 @@ async function callGemini(prompt) {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.8,
-          maxOutputTokens: 500,
+          maxOutputTokens: 2000,
         },
       }),
     }
   );
 
   if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.status}`);
+    const errorBody = await response.text();
+    console.error(`Gemini API error ${response.status}:`, errorBody);
+    throw new Error(`Gemini API error: ${response.status} - ${errorBody}`);
   }
 
   const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  if (!text) {
+    console.error('Gemini returned empty response:', JSON.stringify(data));
+    throw new Error(`Gemini returned no content (finishReason: ${data.candidates?.[0]?.finishReason})`);
+  }
+  return text;
 }
 
 async function callGrok(prompt) {
@@ -216,7 +225,7 @@ async function callGrok(prompt) {
       'Authorization': `Bearer ${GROK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'grok-4.1',
+      model: 'grok-4-1-fast-reasoning',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 500,
       temperature: 0.8,
@@ -224,7 +233,9 @@ async function callGrok(prompt) {
   });
 
   if (!response.ok) {
-    throw new Error(`Grok API error: ${response.status}`);
+    const errorBody = await response.text();
+    console.error(`Grok API error ${response.status}:`, errorBody);
+    throw new Error(`Grok API error: ${response.status} - ${errorBody}`);
   }
 
   const data = await response.json();

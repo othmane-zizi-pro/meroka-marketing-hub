@@ -18,7 +18,7 @@ Reference for the latest, most performant AI models from major labs (as of Janua
 | Meta | Llama 4 Scout | `llama-4-scout` | 10M | Massive context research |
 | DeepSeek | V3.2 | `deepseek-chat` | 128K | Budget-friendly, frontier-level |
 | DeepSeek | V3.2 Reasoner | `deepseek-reasoner` | 128K | Deep reasoning mode |
-| xAI | Grok 4.1 | `grok-4.1` | 1M | Real-time knowledge |
+| xAI | Grok 4.1 Fast | `grok-4-1-fast-reasoning` | 2M | Real-time knowledge, reasoning |
 
 ## Recommendations by Use Case
 
@@ -26,7 +26,7 @@ Reference for the latest, most performant AI models from major labs (as of Janua
 Use these models for the LLM council that generates marketing posts:
 1. **GPT-5.2** - `gpt-5.2`
 2. **Gemini 3 Pro** - `gemini-3-pro-preview`
-3. **Grok 4.1** - `grok-4.1`
+3. **Grok 4.1 Fast** - `grok-4-1-fast-reasoning`
 4. **Claude Opus 4.5** - `claude-opus-4-5-20251101`
 
 ### Coding & Development
