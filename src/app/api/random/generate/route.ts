@@ -106,6 +106,46 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
+        // Fetch top 3 posts by likes for few-shot examples
+        // Map source platform to channel platform used in posts table
+        const channelPlatformMap: Record<string, string> = {
+          linkedin: 'linkedin',
+          x: 'twitter',
+        };
+        const channelPlatform = channelPlatformMap[sourcePlatform] || sourcePlatform;
+
+        // Get channel ID for this platform
+        const { data: channelData } = await supabase
+          .from('channels')
+          .select('id')
+          .eq('platform', channelPlatform)
+          .single();
+
+        let topPerformingPosts: { content: string; likes_count: number }[] = [];
+
+        if (channelData?.id) {
+          // Fetch top 3 posts by likes from campaigns in this channel
+          const { data: topPosts } = await supabase
+            .from('posts')
+            .select(`
+              content,
+              likes_count,
+              campaigns!inner (channel_id)
+            `)
+            .eq('campaigns.channel_id', channelData.id)
+            .not('content', 'is', null)
+            .order('likes_count', { ascending: false })
+            .limit(3);
+
+          if (topPosts && topPosts.length > 0) {
+            topPerformingPosts = topPosts.map(p => ({
+              content: p.content,
+              likes_count: p.likes_count || 0,
+            }));
+            console.log(`Found ${topPerformingPosts.length} top-performing posts for few-shot examples`);
+          }
+        }
+
         // Randomly select posts for inspiration
         const shuffled = historicalPosts.sort(() => Math.random() - 0.5);
         const inspirationPosts = shuffled.slice(0, postsPerRun);
@@ -115,9 +155,11 @@ export async function POST(request: NextRequest) {
           try {
             // Generate AI content based on inspiration
             // This calls the LLM to create new content inspired by the historical post
+            // Pass top-performing posts as few-shot examples
             const llmResponse = await generateContentFromInspiration(
               inspiration.content,
-              sourcePlatform
+              sourcePlatform,
+              topPerformingPosts
             );
 
             if (!llmResponse) {
@@ -193,10 +235,11 @@ export async function POST(request: NextRequest) {
 // Generate content from an inspiration post using LLM Council Lambda
 async function generateContentFromInspiration(
   inspirationContent: string,
-  platform: string
+  platform: string,
+  fewShotExamples: { content: string; likes_count: number }[] = []
 ): Promise<LLMCouncilResponse | null> {
   try {
-    console.log(`Calling LLM Council for ${platform} post...`);
+    console.log(`Calling LLM Council for ${platform} post with ${fewShotExamples.length} few-shot examples...`);
 
     const lambda = new LambdaClient({
       region: 'us-east-1',
@@ -209,6 +252,7 @@ async function generateContentFromInspiration(
     const payload = JSON.stringify({
       inspiration: inspirationContent,
       platform,
+      fewShotExamples,
     });
 
     const command = new InvokeCommand({

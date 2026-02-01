@@ -8,7 +8,7 @@ const GROK_API_KEY = process.env.GROK_API_KEY;
 export const handler = async (event) => {
   try {
     const body = typeof event.body === 'string' ? JSON.parse(event.body) : event;
-    const { inspiration, platform } = body;
+    const { inspiration, platform, fewShotExamples = [] } = body;
 
     if (!inspiration) {
       return {
@@ -20,8 +20,22 @@ export const handler = async (event) => {
     const platformName = platform === 'linkedin' ? 'LinkedIn' : 'X/Twitter';
     const charLimit = platform === 'linkedin' ? '100-500 characters' : 'under 280 characters';
 
-    const prompt = `Create a new ${platformName} post inspired by the following content.
+    // Build few-shot examples section if available
+    let fewShotSection = '';
+    if (fewShotExamples && fewShotExamples.length > 0) {
+      fewShotSection = `
+Here are examples of our top-performing posts that received the most engagement. Use these as inspiration for tone, style, and what resonates with our audience:
 
+${fewShotExamples.map((ex, i) => `--- TOP POST ${i + 1} (${ex.likes_count} likes) ---
+${ex.content}
+`).join('\n')}
+Study what makes these posts successful and incorporate similar qualities into your new post.
+
+`;
+    }
+
+    const prompt = `Create a new ${platformName} post inspired by the following content.
+${fewShotSection}
 The new post should:
 - Cover a similar topic or theme but with a fresh, unique perspective
 - Match the tone appropriate for ${platformName} (${platform === 'linkedin' ? 'professional, insightful, thought-provoking' : 'concise, engaging, punchy'})
