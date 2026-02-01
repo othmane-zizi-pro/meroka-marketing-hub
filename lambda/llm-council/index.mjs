@@ -196,7 +196,7 @@ async function callGemini(prompt) {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.8,
-          maxOutputTokens: 2000,
+          maxOutputTokens: 8000,
         },
       }),
     }
@@ -278,7 +278,7 @@ Respond in this exact JSON format:
     body: JSON.stringify({
       model: 'gpt-5.2',
       messages: [{ role: 'user', content: judgePrompt }],
-      max_tokens: 200,
+      max_completion_tokens: 200,
       temperature: 0.3,
     }),
   });

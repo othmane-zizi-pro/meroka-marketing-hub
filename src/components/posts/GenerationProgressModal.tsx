@@ -11,13 +11,13 @@ interface GenerationProgressModalProps {
 }
 
 const STEPS = [
-  { id: 'fetch', label: 'Fetching inspiration posts', icon: Sparkles, duration: 2000 },
-  { id: 'generate', label: 'LLM Council generating candidates', icon: Brain, duration: 8000 },
-  { id: 'judge', label: 'Selecting best responses', icon: Scale, duration: 3000 },
-  { id: 'save', label: 'Saving drafts', icon: CheckCircle2, duration: 1000 },
+  { id: 'fetch', label: 'Fetching inspiration posts', icon: Sparkles, duration: 3000 },
+  { id: 'generate', label: 'LLM Council generating candidates', icon: Brain, duration: 80000 },
+  { id: 'judge', label: 'Selecting best responses', icon: Scale, duration: 15000 },
+  { id: 'save', label: 'Saving drafts', icon: CheckCircle2, duration: 2000 },
 ];
 
-const MODELS = ['GPT-5.2', 'Gemini 3 Pro', 'Grok 4.1'];
+const MODELS = ['GPT-5.2', 'Gemini 3 Pro', 'Grok 4.1 Fast'];
 
 export function GenerationProgressModal({
   isOpen,
@@ -173,7 +173,7 @@ export function GenerationProgressModal({
         {/* Footer */}
         <div className="px-6 pb-6">
           <p className="text-xs text-center text-gray-500">
-            This usually takes 15-30 seconds...
+            This usually takes 1-2 minutes...
           </p>
         </div>
       </div>
